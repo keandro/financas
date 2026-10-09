@@ -123,8 +123,7 @@ Abra **http://localhost:5173**.
 **Uso no dia a dia (produção local)**
 
 ```bash
-npm run build      # compila server e web
-npm start          # um único servidor em http://localhost:3001 (API + site)
+npm start          # compila server e web e sobe um único servidor em http://localhost:3001 (API + site)
 ```
 
 ---
@@ -135,7 +134,7 @@ npm start          # um único servidor em http://localhost:3001 (API + site)
 |---|---|
 | `npm run dev` | Sobe API e frontend com recarga automática |
 | `npm run build` | Compila `server` e `web` |
-| `npm start` | Servidor de produção (API + site compilado) |
+| `npm start` | Compila e sobe o servidor de produção (API + site) |
 | `npm run seed` | Cria dados de exemplo, apenas se o banco estiver vazio |
 | `npm run seed -- --reset` | ⚠️ **Apaga todos os dados** e recria o exemplo |
 | `npm run backup` | Cria uma cópia do banco em `backups/` |
