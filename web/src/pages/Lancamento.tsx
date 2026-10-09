@@ -284,14 +284,19 @@ function LinhaConta(p: LinhaContaProps) {
             <span className="truncate font-medium">{p.nome}</span>
             {p.inativo && <span className="text-xs text-slate-500 dark:text-slate-400">(inativo)</span>}
           </div>
-          {p.herdadoDe && <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">↳ Trazido de {nomeMesCurto(p.herdadoDe)}</p>}
         </div>
         <CampoMoeda aria-label={p.rotuloCampo} permitirNegativo={p.permitirNegativo} valor={p.valor} onChange={p.onChange} />
       </div>
-      <div className="flex justify-end">
-        <Botao type="button" onClick={p.onAlternar} aria-expanded={p.aberta} className="px-2.5 py-1.5 text-xs">
-          ± Entradas/saídas{n ? ` (${n})` : ""} <span aria-hidden>{p.aberta ? "▴" : "▾"}</span>
-        </Botao>
+      <div className="-mt-1 flex flex-wrap items-center justify-between gap-2">
+        <span className="text-xs text-slate-500 dark:text-slate-400">{p.herdadoDe ? `↳ Trazido de ${nomeMesCurto(p.herdadoDe)}` : ""}</span>
+        <button
+          type="button"
+          onClick={p.onAlternar}
+          aria-expanded={p.aberta}
+          className="text-xs font-medium text-emerald-700 hover:underline dark:text-emerald-400"
+        >
+          {p.aberta ? "▾" : "▸"} ± Entradas/saídas{n ? ` (${n})` : ""}
+        </button>
       </div>
       {p.aberta && (
         <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-800">
