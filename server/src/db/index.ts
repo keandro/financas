@@ -19,10 +19,19 @@ function migrar() {
   const pendentes = migrations.slice(atual);
   if (pendentes.length === 0) return;
 
-  db.transaction(() => {
-    pendentes.forEach((sql) => db.exec(sql));
-    db.pragma(`user_version = ${migrations.length}`);
-  })();
+  // chaves estrangeiras desligadas durante a migração (permite recriar tabelas, receita oficial do SQLite)
+  // e conferidas antes de gravar
+  db.pragma("foreign_keys = OFF");
+  try {
+    db.transaction(() => {
+      pendentes.forEach((sql) => db.exec(sql));
+      const problemas = db.pragma("foreign_key_check") as unknown[];
+      if (problemas.length) throw new Error(`migration quebrou chaves estrangeiras: ${JSON.stringify(problemas)}`);
+      db.pragma(`user_version = ${migrations.length}`);
+    })();
+  } finally {
+    db.pragma("foreign_keys = ON");
+  }
   console.log(`[db] migrations aplicadas: ${atual + 1}..${migrations.length}`);
 }
 

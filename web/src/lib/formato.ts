@@ -32,13 +32,19 @@ export function diasAte(iso: string, hoje = new Date()) {
   return Math.round((alvo - base) / 86_400_000);
 }
 
-export type Moeda = "BRL" | "USD" | "EUR";
-export const SIMBOLO: Record<Moeda, string> = { BRL: "R$", USD: "US$", EUR: "€" };
-export const NOME_MOEDA: Record<Moeda, string> = { BRL: "Real", USD: "Dólar", EUR: "Euro" };
+/** XAU = ouro e XAG = prata, em gramas */
+export type Moeda = "BRL" | "USD" | "EUR" | "XAU" | "XAG";
+export const MOEDAS: Moeda[] = ["BRL", "USD", "EUR", "XAU", "XAG"];
+export const SIMBOLO: Record<Moeda, string> = { BRL: "R$", USD: "US$", EUR: "€", XAU: "g", XAG: "g" };
+export const NOME_MOEDA: Record<Moeda, string> = { BRL: "Real", USD: "Dólar", EUR: "Euro", XAU: "Ouro", XAG: "Prata" };
+export const ehGramas = (m: Moeda) => m === "XAU" || m === "XAG";
+/** "US$ 1" / "1 g" — unidade da cotação */
+export const UNIDADE_COTACAO = (m: Moeda) => (ehGramas(m) ? "1 g" : `${SIMBOLO[m]} 1`);
 
 /** 123456 em USD → "US$ 1.234,56" (formato brasileiro com o símbolo da moeda). */
 export function formatarMoeda(centavos: number, moeda: Moeda) {
   if (moeda === "BRL") return formatarBRL(centavos);
+  if (ehGramas(moeda)) return `${formatarNumero(centavos)} g`;
   return `${centavos < 0 ? "-" : ""}${SIMBOLO[moeda]} ${formatarNumero(Math.abs(centavos))}`;
 }
 

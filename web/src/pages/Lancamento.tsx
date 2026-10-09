@@ -6,7 +6,7 @@ import { SeletorMes } from "../components/SeletorMes";
 import { Aviso, Botao, Bolinha, Painel } from "../components/ui";
 import { useMes } from "../contexts/Mes";
 import { api, type Lancamento, type MoedaEstrangeira, type Movimentacao } from "../lib/api";
-import { NOME_MOEDA, SIMBOLO, formatarBRL, formatarData, paraReais, type Moeda } from "../lib/formato";
+import { NOME_MOEDA, SIMBOLO, UNIDADE_COTACAO, formatarBRL, formatarData, paraReais, type Moeda } from "../lib/formato";
 import { nomeMesCurto } from "../lib/mes";
 import { useApi } from "../lib/useApi";
 
@@ -70,7 +70,10 @@ export function LancamentoPage() {
     setErroCotacao(null);
     try {
       const c = await api.cotacaoAtual();
-      setForm({ ...form, cotacoes: { USD: { taxa: c.USD, herdado_de: null }, EUR: { taxa: c.EUR, herdado_de: null } } });
+      setForm({
+        ...form,
+        cotacoes: Object.fromEntries(Object.entries(c).map(([m, taxa]) => [m, { taxa, herdado_de: null }])) as Lancamento["cotacoes"],
+      });
     } catch (e) {
       setErroCotacao((e as Error).message);
     }
@@ -136,7 +139,7 @@ export function LancamentoPage() {
               <div key={m} className="grid grid-cols-[1fr_minmax(0,11rem)] items-center gap-3">
                 <div className="min-w-0">
                   <p className="text-sm font-medium">
-                    Cotação {NOME_MOEDA[m]} ({SIMBOLO[m]} 1)
+                    Cotação {NOME_MOEDA[m]} ({UNIDADE_COTACAO(m)})
                   </p>
                   {form.cotacoes[m].herdado_de && <p className="text-xs text-slate-500 dark:text-slate-400">↳ Trazido de {nomeMesCurto(form.cotacoes[m].herdado_de!)}</p>}
                 </div>

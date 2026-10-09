@@ -2,10 +2,11 @@ import { useState, type FormEvent } from "react";
 import { CampoMoeda } from "../components/CampoMoeda";
 import { Aviso, Botao, Bolinha, Painel, inputClasse } from "../components/ui";
 import { api, type Banco, type BancoEntrada, type TipoConta } from "../lib/api";
-import { NOME_MOEDA, SIMBOLO, formatarBRL, type Moeda } from "../lib/formato";
+import { MOEDAS, NOME_MOEDA, SIMBOLO, ehGramas, formatarBRL, type Moeda } from "../lib/formato";
 import { useApi } from "../lib/useApi";
 
-const CORES_SUGERIDAS = ["#8A05BE", "#EC7000", "#F5C400", "#0070AF", "#CC092F", "#FF7A00", "#00A868", "#1E3A8A", "#64748B"];
+const CORES_SUGERIDAS = ["#8A05BE", "#EC7000", "#F5C400", "#0070AF", "#CC092F", "#FF7A00", "#00A868", "#1E3A8A", "#64748B", "#D4AF37", "#A8A9AD"];
+const COR_METAL: Partial<Record<Moeda, string>> = { XAU: "#D4AF37", XAG: "#A8A9AD" };
 
 export function BancosPage() {
   const { dados: bancos, erro, carregando, recarregar } = useApi(api.bancos, []);
@@ -107,7 +108,7 @@ function CardBanco({ banco, onEditar, onAlternar, onExcluir }: { banco: Banco; o
       <div className="mt-3 text-sm text-slate-600 dark:text-slate-400">
         {banco.tipo === "outro" ? (
           <p>
-            💰 {NOME_MOEDA[banco.moeda]} ({SIMBOLO[banco.moeda]})
+            💰 {NOME_MOEDA[banco.moeda]} ({ehGramas(banco.moeda) ? "gramas" : SIMBOLO[banco.moeda]})
           </p>
         ) : c && c.ativo ? (
           <>
@@ -210,20 +211,23 @@ function FormBanco({ banco, tipo, onFechar, onSalvo }: { banco: Banco | null; ti
         {tipo === "outro" && (
           <div className="space-y-1">
             <span className="text-sm font-medium">Moeda</span>
-            <div className="flex gap-1 rounded-lg bg-slate-100 p-1 dark:bg-slate-950">
-              {(["BRL", "USD", "EUR"] as Moeda[]).map((m) => (
+            <div className="flex flex-wrap gap-1 rounded-lg bg-slate-100 p-1 dark:bg-slate-950">
+              {MOEDAS.map((m) => (
                 <button
                   key={m}
                   type="button"
-                  onClick={() => setMoeda(m)}
+                  onClick={() => {
+                    setMoeda(m);
+                    if (!banco && COR_METAL[m]) setCor(COR_METAL[m]);
+                  }}
                   aria-pressed={moeda === m}
-                  className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                  className={`flex-1 whitespace-nowrap rounded-md px-2 py-1.5 text-sm font-medium transition ${
                     moeda === m
                       ? "bg-white text-emerald-700 shadow-sm dark:bg-slate-800 dark:text-emerald-300"
                       : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
                   }`}
                 >
-                  {NOME_MOEDA[m]} ({SIMBOLO[m]})
+                  {NOME_MOEDA[m]} <span className="text-xs opacity-70">({SIMBOLO[m]})</span>
                 </button>
               ))}
             </div>

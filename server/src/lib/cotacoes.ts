@@ -4,7 +4,8 @@
  */
 import { db } from "../db/index.js";
 
-export const MOEDAS_ESTRANGEIRAS = ["USD", "EUR"] as const;
+/** XAU = ouro e XAG = prata, em gramas (cotação em reais por grama) */
+export const MOEDAS_ESTRANGEIRAS = ["USD", "EUR", "XAU", "XAG"] as const;
 export type MoedaEstrangeira = (typeof MOEDAS_ESTRANGEIRAS)[number];
 export type Moeda = "BRL" | MoedaEstrangeira;
 export const ESCALA_TAXA = 10_000;
@@ -34,17 +35,24 @@ export function paraReais(centavos: number, moeda: Moeda, mes: string): number |
   return taxa === null ? null : Math.round((centavos * taxa) / ESCALA_TAXA);
 }
 
-/** Cotação atual na internet (AwesomeAPI). Lança erro se não conseguir. */
+const GRAMAS_POR_ONCA_TROY = 31.1034768;
+
+/** Cotação atual na internet (AwesomeAPI). Ouro/prata vêm por onça troy e são convertidos para grama. */
 export async function buscarCotacaoAtual(): Promise<Record<MoedaEstrangeira, number>> {
-  const r = await fetch("https://economia.awesomeapi.com.br/json/last/USD-BRL,EUR-BRL", {
+  const r = await fetch("https://economia.awesomeapi.com.br/json/last/USD-BRL,EUR-BRL,XAU-BRL,XAG-BRL", {
     signal: AbortSignal.timeout(8000),
   });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   const d = (await r.json()) as Record<string, { bid: string }>;
-  const taxa = (s: string | undefined) => {
-    const n = Math.round(Number(s) * ESCALA_TAXA);
+  const taxa = (s: string | undefined, divisor = 1) => {
+    const n = Math.round((Number(s) / divisor) * ESCALA_TAXA);
     if (!Number.isSafeInteger(n) || n <= 0) throw new Error("resposta inválida");
     return n;
   };
-  return { USD: taxa(d.USDBRL?.bid), EUR: taxa(d.EURBRL?.bid) };
+  return {
+    USD: taxa(d.USDBRL?.bid),
+    EUR: taxa(d.EURBRL?.bid),
+    XAU: taxa(d.XAUBRL?.bid, GRAMAS_POR_ONCA_TROY),
+    XAG: taxa(d.XAGBRL?.bid, GRAMAS_POR_ONCA_TROY),
+  };
 }

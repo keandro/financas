@@ -88,7 +88,7 @@ web/src/
 | GET | `/api/resumo/:mes` | Totais, variação, distribuição, faturas |
 | GET | `/api/historico/:mes?n=12` | Evolução dos últimos N meses |
 | GET | `/api/vencimentos` | Faturas não pagas, por data de vencimento |
-| GET | `/api/cotacoes/atual` | Cotação atual de USD e EUR (consulta externa) |
+| GET | `/api/cotacoes/atual` | Cotação atual de USD, EUR, ouro e prata (R$/g) — consulta externa |
 | GET | `/api/meses` | Meses com lançamento |
 
 **Desativar × excluir:** desativar esconde o banco dos lançamentos novos e mantém o histórico.
@@ -96,7 +96,7 @@ Excluir apaga tudo (os totais de meses passados mudam). Faça um `npm run backup
 
 **Poupança:** aplicações e outras reservas (Tesouro, CDB, dinheiro em outras moedas...), cadastradas em "Bancos e cartões".
 Funcionam como um banco sem cartão: saldo herdado mês a mês, entradas/saídas, e entram no total disponível.
-Cada um pode ser em **Real, Dólar ou Euro**. Valores ficam na moeda original; para os totais, são convertidos
+Cada um pode ser em **Real, Dólar, Euro, Ouro ou Prata** (ouro/prata em gramas, cotação em R$ por grama). Valores ficam na moeda original; para os totais, são convertidos
 pela cotação do mês (informada na tela de Lançamento ou buscada em economia.awesomeapi.com.br; mês sem cotação herda a anterior).
 
 **Virada de mês automática:** dinheiro físico e saldos passam sozinhos para os meses seguintes.

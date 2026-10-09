@@ -1,6 +1,9 @@
 import { Router } from "express";
 import { db } from "../db/index.js";
+import { MOEDAS_ESTRANGEIRAS, type Moeda } from "../lib/cotacoes.js";
 import { HttpError, ehCentavos, ehCor, ehDia, exigir } from "../lib/http.js";
+
+const MOEDAS: string[] = ["BRL", ...MOEDAS_ESTRANGEIRAS];
 
 export const bancosRouter = Router();
 
@@ -45,7 +48,7 @@ function listar() {
     cor: l.cor,
     ativo: l.ativo === 1,
     tipo: l.tipo as "banco" | "outro",
-    moeda: l.moeda as "BRL" | "USD" | "EUR",
+    moeda: l.moeda as Moeda,
     criado_em: l.criado_em,
     lancamentos: l.lancamentos as number,
     cartao: l.cartao_id
@@ -91,7 +94,7 @@ bancosRouter.post("/", (req, res) => {
   const cartao = lerCartao(req.body.cartao);
   exigir(!(tipo === "outro" && cartao), "Poupança não tem cartão");
   const moeda = req.body.moeda ?? "BRL";
-  exigir(["BRL", "USD", "EUR"].includes(moeda), "Moeda inválida");
+  exigir(MOEDAS.includes(moeda), "Moeda inválida");
   exigir(tipo === "outro" || moeda === "BRL", "Bancos são sempre em reais");
 
   const id = db.transaction(() => {
@@ -112,7 +115,7 @@ bancosRouter.put("/:id", (req, res) => {
   if (!atual) throw new HttpError(404, "Banco não encontrado");
 
   const { nome = atual.nome, cor = atual.cor, ativo = atual.ativo, moeda = atual.moeda } = req.body ?? {};
-  exigir(["BRL", "USD", "EUR"].includes(moeda), "Moeda inválida");
+  exigir(MOEDAS.includes(moeda), "Moeda inválida");
   exigir(atual.tipo === "outro" || moeda === "BRL", "Bancos são sempre em reais");
   exigir(typeof nome === "string" && nome.trim(), "Nome é obrigatório");
   exigir(ehCor(cor), "Cor inválida (use #RRGGBB)");

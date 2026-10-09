@@ -80,4 +80,31 @@ export const migrations: string[] = [
     PRIMARY KEY (mes, moeda)
   );
   `,
+
+  // 7 — ouro (XAU) e prata (XAG) em gramas: recria bancos/cotacoes para ampliar o CHECK de moeda
+  `
+  CREATE TABLE bancos_novo (
+    id         INTEGER PRIMARY KEY,
+    nome       TEXT    NOT NULL,
+    cor        TEXT    NOT NULL,
+    ativo      INTEGER NOT NULL DEFAULT 1 CHECK (ativo IN (0, 1)),
+    criado_em  TEXT    NOT NULL DEFAULT (datetime('now')),
+    tipo       TEXT    NOT NULL DEFAULT 'banco' CHECK (tipo IN ('banco', 'outro')),
+    moeda      TEXT    NOT NULL DEFAULT 'BRL' CHECK (moeda IN ('BRL', 'USD', 'EUR', 'XAU', 'XAG'))
+  );
+  INSERT INTO bancos_novo (id, nome, cor, ativo, criado_em, tipo, moeda)
+    SELECT id, nome, cor, ativo, criado_em, tipo, moeda FROM bancos;
+  DROP TABLE bancos;
+  ALTER TABLE bancos_novo RENAME TO bancos;
+
+  CREATE TABLE cotacoes_nova (
+    mes   TEXT    NOT NULL,
+    moeda TEXT    NOT NULL CHECK (moeda IN ('USD', 'EUR', 'XAU', 'XAG')),
+    taxa  INTEGER NOT NULL CHECK (taxa > 0),
+    PRIMARY KEY (mes, moeda)
+  );
+  INSERT INTO cotacoes_nova SELECT mes, moeda, taxa FROM cotacoes;
+  DROP TABLE cotacoes;
+  ALTER TABLE cotacoes_nova RENAME TO cotacoes;
+  `,
 ];

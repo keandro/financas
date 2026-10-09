@@ -87,7 +87,7 @@ export interface Lancamento {
   cotacoes: Record<MoedaEstrangeira, { taxa: number | null; herdado_de: string | null }>;
 }
 
-export type MoedaEstrangeira = "USD" | "EUR";
+export type MoedaEstrangeira = Exclude<Moeda, "BRL">;
 
 export interface Totais {
   mes: string;
