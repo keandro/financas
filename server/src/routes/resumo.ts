@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { db } from "../db/index.js";
+import { saldosDoMes } from "../lib/contas.js";
 import { faturasDoMes, faturasEmAberto, totaisDoMes } from "../lib/calculos.js";
 import { exigir } from "../lib/http.js";
 import { mesValido, somarMeses } from "../lib/mes.js";
@@ -29,13 +30,10 @@ resumoRouter.get("/resumo/:mes", (req, res) => {
     variacao = { valor, pct: anterior.patrimonio === 0 ? null : (valor / Math.abs(anterior.patrimonio)) * 100 };
   }
 
-  const bancos = db
-    .prepare(
-      `SELECT b.nome, b.cor, s.valor_centavos AS valor
-       FROM saldos s JOIN bancos b ON b.id = s.banco_id
-       WHERE s.mes = ? ORDER BY s.valor_centavos DESC`,
-    )
-    .all(mes) as { nome: string; cor: string; valor: number }[];
+  const bancos = saldosDoMes(mes)
+    .filter((s) => s.valor !== null)
+    .map((s) => ({ nome: s.nome, cor: s.cor, valor: s.valor as number }))
+    .sort((a, b) => b.valor - a.valor);
 
   const distribuicao = [{ nome: "Dinheiro físico", cor: "#10B981", valor: atual.dinheiro_fisico }, ...bancos].filter(
     (d) => d.valor > 0,

@@ -121,6 +121,7 @@ bancosRouter.delete("/:id", (req, res) => {
       .prepare("DELETE FROM faturas WHERE cartao_id IN (SELECT id FROM cartoes WHERE banco_id = ?)")
       .run(id).changes;
     const saldos = db.prepare("DELETE FROM saldos WHERE banco_id = ?").run(id).changes;
+    db.prepare("DELETE FROM movimentacoes_dinheiro WHERE banco_id = ?").run(id);
     db.prepare("DELETE FROM cartoes WHERE banco_id = ?").run(id);
     db.prepare("DELETE FROM bancos WHERE id = ?").run(id);
     return { saldos, faturas };

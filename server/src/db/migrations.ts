@@ -59,4 +59,9 @@ export const migrations: string[] = [
   );
   CREATE INDEX idx_movimentacoes_mes ON movimentacoes_dinheiro (mes);
   `,
+
+  // 4 — movimentações também em bancos (banco_id NULL = dinheiro físico)
+  `
+  ALTER TABLE movimentacoes_dinheiro ADD COLUMN banco_id INTEGER REFERENCES bancos(id);
+  `,
 ];

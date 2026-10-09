@@ -84,7 +84,7 @@ web/src/
 | PUT | `/api/bancos/:id` | Edita nome, cor, ativo e cartão (dias + `limite_centavos`; `cartao: null` desativa o cartão) |
 | DELETE | `/api/bancos/:id` | **Exclui definitivamente** o banco, o cartão e todos os saldos/faturas dele |
 | GET/PUT | `/api/lancamentos/:mes` | Formulário do mês / salva tudo de uma vez (ajusta saldos ao pagar/despagar faturas) |
-| POST/DELETE | `/api/lancamentos/:mes/movimentacoes[/:id]` | Entrada/saída de dinheiro físico (soma/subtrai na hora; remover desfaz) |
+| POST/DELETE | `/api/lancamentos/:mes/movimentacoes[/:id]` | Entrada/saída do dinheiro físico (`banco_id: null`) ou de um banco (soma/subtrai na hora; remover desfaz) |
 | GET | `/api/resumo/:mes` | Totais, variação, distribuição, faturas |
 | GET | `/api/historico/:mes?n=12` | Evolução dos últimos N meses |
 | GET | `/api/vencimentos` | Faturas não pagas, por data de vencimento |
@@ -93,8 +93,13 @@ web/src/
 **Desativar × excluir:** desativar esconde o banco dos lançamentos novos e mantém o histórico.
 Excluir apaga tudo (os totais de meses passados mudam). Faça um `npm run backup` antes, por garantia.
 
-**Movimentações de dinheiro físico:** na tela de Lançamento, registre entradas e saídas do dia (valor, data, descrição);
-o total do dinheiro físico do mês é atualizado na hora. Remover uma movimentação desfaz o valor.
+**Virada de mês automática:** dinheiro físico e saldos passam sozinhos para os meses seguintes.
+Um mês sem valor gravado herda o último valor gravado (bancos inativos não herdam). Ao mudar o valor de um mês
+(edição, movimentação ou pagamento de fatura), a diferença é repassada aos meses seguintes que tenham valor próprio.
+
+**Movimentações (entradas/saídas):** na tela de Lançamento, registre o que entrou ou saiu do dinheiro físico
+ou de cada banco ("± Entradas/saídas"). O valor do mês é atualizado na hora; remover desfaz.
+"Copiar faturas do mês anterior" copia apenas as faturas.
 
 **Pagar fatura:** ao marcar "Paga" e salvar, o valor é descontado do saldo do banco do cartão naquele mês;
 ao desmarcar, é devolvido. Mudar o valor de uma fatura já paga ajusta a diferença.

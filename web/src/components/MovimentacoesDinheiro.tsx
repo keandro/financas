@@ -6,7 +6,11 @@ import { Botao, inputClasse } from "./ui";
 
 interface Props {
   mes: string;
+  /** null = dinheiro físico */
+  bancoId: number | null;
+  /** movimentações desta conta no mês */
   movimentacoes: Movimentacao[];
+  titulo?: string;
   /** chamado após adicionar/remover, com a variação aplicada ao dinheiro físico */
   onAlterado: (lista: Movimentacao[], variacao: number) => void;
 }
@@ -22,8 +26,8 @@ function ultimoDia(mes: string) {
   return `${mes}-${String(new Date(a, m, 0).getDate()).padStart(2, "0")}`;
 }
 
-/** Entradas e saídas do dinheiro físico: cada uma já soma/subtrai do total do mês ao ser adicionada. */
-export function MovimentacoesDinheiro({ mes, movimentacoes, onAlterado }: Props) {
+/** Entradas e saídas de uma conta (dinheiro físico ou banco): cada uma já soma/subtrai do valor do mês ao ser adicionada. */
+export function MovimentacoesDinheiro({ mes, bancoId, movimentacoes, titulo = "Movimentações do mês", onAlterado }: Props) {
   const [tipo, setTipo] = useState<"entrada" | "saida">("entrada");
   const [valor, setValor] = useState<number | null>(null);
   const [descricao, setDescricao] = useState("");
@@ -45,7 +49,7 @@ export function MovimentacoesDinheiro({ mes, movimentacoes, onAlterado }: Props)
     setOcupado(true);
     try {
       const assinado = tipo === "entrada" ? valor : -valor;
-      const r = await api.adicionarMovimentacao(mes, { data, descricao, valor_centavos: assinado });
+      const r = await api.adicionarMovimentacao(mes, { banco_id: bancoId, data, descricao, valor_centavos: assinado });
       const lista = [...movimentacoes, r.movimentacao].sort((a, b) => a.data.localeCompare(b.data) || a.id - b.id);
       onAlterado(lista, assinado);
       setValor(null);
@@ -72,6 +76,7 @@ export function MovimentacoesDinheiro({ mes, movimentacoes, onAlterado }: Props)
     }
   }
 
+  const sufixo = bancoId === null ? "" : ` (banco ${bancoId})`;
   const entradas = movimentacoes.filter((m) => m.valor_centavos > 0).reduce((s, m) => s + m.valor_centavos, 0);
   const saidas = movimentacoes.filter((m) => m.valor_centavos < 0).reduce((s, m) => s - m.valor_centavos, 0);
 
@@ -89,8 +94,8 @@ export function MovimentacoesDinheiro({ mes, movimentacoes, onAlterado }: Props)
   );
 
   return (
-    <div className="mt-5 border-t border-slate-200 pt-4 dark:border-slate-800">
-      <h3 className="mb-3 text-sm font-medium text-slate-700 dark:text-slate-300">Movimentações do mês</h3>
+    <div className={titulo ? "mt-5 border-t border-slate-200 pt-4 dark:border-slate-800" : ""}>
+      {titulo && <h3 className="mb-3 text-sm font-medium text-slate-700 dark:text-slate-300">{titulo}</h3>}
 
       <form onSubmit={adicionar} className="space-y-2">
         <div className="flex gap-1 rounded-lg bg-slate-100 p-1 dark:bg-slate-950">
@@ -98,10 +103,10 @@ export function MovimentacoesDinheiro({ mes, movimentacoes, onAlterado }: Props)
           {botaoTipo("saida", "− Saída", "bg-white text-red-600 shadow-sm dark:bg-slate-800 dark:text-red-400")}
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <CampoMoeda aria-label="Valor da movimentação" valor={valor} onChange={setValor} />
+          <CampoMoeda aria-label={`Valor da movimentação${sufixo}`} valor={valor} onChange={setValor} />
           <input
             type="date"
-            aria-label="Data da movimentação"
+            aria-label={`Data da movimentação${sufixo}`}
             className={inputClasse}
             value={data}
             min={`${mes}-01`}
@@ -114,7 +119,7 @@ export function MovimentacoesDinheiro({ mes, movimentacoes, onAlterado }: Props)
           <input
             className={inputClasse}
             placeholder={tipo === "entrada" ? "Descrição (ex.: recebi do João)" : "Descrição (ex.: almoço)"}
-            aria-label="Descrição da movimentação"
+            aria-label={`Descrição da movimentação${sufixo}`}
             value={descricao}
             maxLength={200}
             onChange={(e) => setDescricao(e.target.value)}

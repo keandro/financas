@@ -1,4 +1,5 @@
 import { db } from "../db/index.js";
+import { saldosDoMes, valorDaConta } from "./contas.js";
 import { dataVencimento } from "./mes.js";
 
 export interface Totais {
@@ -11,24 +12,24 @@ export interface Totais {
   patrimonio: number;
 }
 
-const qFisico = db.prepare("SELECT valor_centavos AS v FROM dinheiro_fisico WHERE mes = ?");
-const qSaldos = db.prepare("SELECT COUNT(*) AS n, COALESCE(SUM(valor_centavos), 0) AS v FROM saldos WHERE mes = ?");
 const qFaturas = db.prepare(
   "SELECT COUNT(*) AS n, COALESCE(SUM(CASE WHEN paga = 0 THEN valor_centavos END), 0) AS v FROM faturas WHERE mes = ?",
 );
 
 export function totaisDoMes(mes: string): Totais {
-  const fisico = qFisico.get(mes) as { v: number } | undefined;
-  const saldos = qSaldos.get(mes) as { n: number; v: number };
+  // valores gravados ou herdados do mês anterior
+  const fisico = valorDaConta(null, mes).valor;
+  const saldos = saldosDoMes(mes).filter((s) => s.valor !== null);
+  const somaBancos = saldos.reduce((s, b) => s + (b.valor ?? 0), 0);
   const faturas = qFaturas.get(mes) as { n: number; v: number };
 
-  const dinheiro_fisico = fisico?.v ?? 0;
-  const disponivel = dinheiro_fisico + saldos.v;
+  const dinheiro_fisico = fisico ?? 0;
+  const disponivel = dinheiro_fisico + somaBancos;
   return {
     mes,
-    temDados: !!fisico || saldos.n > 0 || faturas.n > 0,
+    temDados: fisico !== null || saldos.length > 0 || faturas.n > 0,
     dinheiro_fisico,
-    bancos: saldos.v,
+    bancos: somaBancos,
     disponivel,
     devido: faturas.v,
     patrimonio: disponivel - faturas.v,

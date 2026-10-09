@@ -23,7 +23,7 @@ const bancosExemplo = [
 
 db.transaction(() => {
   if (reset) {
-    db.exec("DELETE FROM faturas; DELETE FROM saldos; DELETE FROM dinheiro_fisico; DELETE FROM cartoes; DELETE FROM bancos;");
+    db.exec("DELETE FROM movimentacoes_dinheiro; DELETE FROM faturas; DELETE FROM saldos; DELETE FROM dinheiro_fisico; DELETE FROM cartoes; DELETE FROM bancos;");
   }
 
   const insBanco = db.prepare("INSERT INTO bancos (nome, cor) VALUES (?, ?)");
