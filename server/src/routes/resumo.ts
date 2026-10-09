@@ -61,14 +61,26 @@ resumoRouter.get("/resumo/:mes", (req, res) => {
     )
     .all(mes);
 
+  // gastos do cartão = todas as faturas do mês (pagas ou não)
+  const faturas = faturasDoMes(mes);
+  const somaFaturas = (lista: { valor_centavos: number }[]) => lista.reduce((s, f) => s + f.valor_centavos, 0);
+  const pago = somaFaturas(faturas.filter((f) => f.paga));
+  const gastos_cartao = {
+    total: somaFaturas(faturas),
+    pago,
+    a_pagar: somaFaturas(faturas) - pago,
+    total_anterior: somaFaturas(faturasDoMes(somarMeses(mes, -1))),
+  };
+
   res.json({
     ...atual,
+    gastos_cartao,
     anterior,
     variacao,
     variacao_poupanca,
     distribuicao,
     distribuicao_poupanca,
-    faturas: faturasDoMes(mes),
+    faturas,
     uso_limite,
   });
 });

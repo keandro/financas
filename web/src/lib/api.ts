@@ -127,6 +127,7 @@ export interface Resumo extends Totais {
   distribuicao: { nome: string; cor: string; valor: number }[];
   distribuicao_poupanca: { nome: string; cor: string; valor: number; moeda: Moeda; valor_original: number }[];
   faturas: FaturaDetalhe[];
+  gastos_cartao: { total: number; pago: number; a_pagar: number; total_anterior: number };
   uso_limite: { cartao_id: number; banco_nome: string; cor: string; limite_centavos: number; usado_centavos: number }[];
 }
 

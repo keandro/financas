@@ -32,6 +32,35 @@ function CardVariacao({ v }: { v: Variacao | null | undefined }) {
   );
 }
 
+function Mini({ titulo, valor, detalhe, destaque = "" }: { titulo: string; valor: string; detalhe?: string; destaque?: string }) {
+  return (
+    <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-950/60">
+      <p className="text-xs text-slate-500 dark:text-slate-400">{titulo}</p>
+      <p className={`mt-1 text-lg font-semibold tabular-nums ${destaque}`}>{valor}</p>
+      {detalhe && <p className="text-xs text-slate-500 dark:text-slate-400">{detalhe}</p>}
+    </div>
+  );
+}
+
+/** Total gasto no cartão no mês (pago + a pagar) e variação. Gastar mais = vermelho. */
+function ResumoGastos({ g }: { g: { total: number; pago: number; a_pagar: number; total_anterior: number } }) {
+  const dif = g.total - g.total_anterior;
+  const pct = g.total_anterior ? (dif / g.total_anterior) * 100 : null;
+  return (
+    <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <Mini titulo="Total gasto no mês" valor={formatarBRL(g.total)} />
+      <Mini titulo="Pago" valor={formatarBRL(g.pago)} destaque="text-emerald-600 dark:text-emerald-400" />
+      <Mini titulo="A pagar" valor={formatarBRL(g.a_pagar)} destaque={g.a_pagar > 0 ? "text-red-600 dark:text-red-400" : ""} />
+      <Mini
+        titulo="Vs mês anterior"
+        valor={g.total_anterior === 0 && g.total === 0 ? "—" : `${dif > 0 ? "▲ +" : dif < 0 ? "▼ −" : ""}${formatarBRL(Math.abs(dif))}`}
+        detalhe={pct !== null ? `${formatarPct(pct)} · antes ${formatarBRL(g.total_anterior)}` : undefined}
+        destaque={dif > 0 ? "text-red-600 dark:text-red-400" : dif < 0 ? "text-emerald-600 dark:text-emerald-400" : ""}
+      />
+    </div>
+  );
+}
+
 const TituloSecao = ({ children }: { children: React.ReactNode }) => (
   <h2 className="border-b border-slate-200 pb-2 text-lg font-semibold dark:border-slate-800">{children}</h2>
 );
@@ -111,7 +140,8 @@ export function DashboardPage() {
 
       <Painel titulo="Evolução — últimos 12 meses">{historico.dados && <GraficoEvolucao historico={historico.dados} />}</Painel>
 
-      <Painel titulo="Fatura por cartão no mês">
+      <Painel titulo="Gastos do cartão" acao={<span className="text-xs text-slate-500 dark:text-slate-400">{nomeMesCurto(mes)}</span>}>
+        {r && <ResumoGastos g={r.gastos_cartao} />}
         {r && <GraficoFaturas faturas={r.faturas} />}
         {r && r.uso_limite.length > 0 && (
           <div className="mt-5 border-t border-slate-200 pt-4 dark:border-slate-800">
