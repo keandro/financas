@@ -7,10 +7,15 @@ export interface Totais {
   temDados: boolean;
   dinheiro_fisico: number;
   bancos: number;
-  outros: number;
+  /** conta corrente: físico + bancos */
   disponivel: number;
   devido: number;
+  /** conta corrente: disponível − devido */
   patrimonio: number;
+  /** outros dinheiros, em reais */
+  poupanca: number;
+  /** patrimônio + poupança */
+  patrimonio_total: number;
 }
 
 const qFaturas = db.prepare(
@@ -28,16 +33,17 @@ export function totaisDoMes(mes: string): Totais {
   const faturas = qFaturas.get(mes) as { n: number; v: number };
 
   const dinheiro_fisico = fisico ?? 0;
-  const disponivel = dinheiro_fisico + somaBancos + somaOutros;
+  const disponivel = dinheiro_fisico + somaBancos;
   return {
     mes,
     temDados: fisico !== null || saldos.length > 0 || faturas.n > 0,
     dinheiro_fisico,
     bancos: somaBancos,
-    outros: somaOutros,
     disponivel,
     devido: faturas.v,
     patrimonio: disponivel - faturas.v,
+    poupanca: somaOutros,
+    patrimonio_total: disponivel - faturas.v + somaOutros,
   };
 }
 

@@ -57,9 +57,11 @@ export function LancamentoPage() {
     const somaAjustes = [...ajustes.values()].reduce((s, v) => s + v, 0);
     const emReais = (b: Lancamento["saldos"][number]) =>
       paraReais(b.valor_centavos ?? 0, b.moeda, b.moeda === "BRL" ? null : form.cotacoes[b.moeda].taxa) ?? 0;
-    const disponivel = (form.dinheiro_fisico ?? 0) + form.saldos.reduce((s, b) => s + emReais(b), 0) + somaAjustes;
+    const disponivel =
+      (form.dinheiro_fisico ?? 0) + form.saldos.filter((b) => b.tipo === "banco").reduce((s, b) => s + emReais(b), 0) + somaAjustes;
+    const poupanca = form.saldos.filter((b) => b.tipo === "outro").reduce((s, b) => s + emReais(b), 0);
     const devido = form.faturas.reduce((s, f) => s + (f.paga ? 0 : (f.valor_centavos ?? 0)), 0);
-    return { disponivel, devido, patrimonio: disponivel - devido };
+    return { disponivel, devido, patrimonio: disponivel - devido, poupanca };
   }, [form, ajustes]);
 
   const [erroCotacao, setErroCotacao] = useState<string | null>(null);
@@ -298,6 +300,12 @@ export function LancamentoPage() {
                     <span className={rotulo}>Patrimônio </span>
                     <b className="tabular-nums">{formatarBRL(totais.patrimonio)}</b>
                   </span>
+                  {totais.poupanca !== 0 && (
+                    <span>
+                      <span className={rotulo}>Poupança </span>
+                      <b className="text-sky-600 tabular-nums dark:text-sky-400">{formatarBRL(totais.poupanca)}</b>
+                    </span>
+                  )}
                 </div>
                 <Botao variante="primario" onClick={salvar} disabled={!alterado || salvando} className="w-full sm:w-auto">
                   {salvando ? "Salvando..." : alterado ? "Salvar" : "Salvo"}

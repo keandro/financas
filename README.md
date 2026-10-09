@@ -111,4 +111,5 @@ ou de cada banco ("± Entradas/saídas"). O valor do mês é atualizado na hora;
 ao desmarcar, é devolvido. Mudar o valor de uma fatura já paga ajusta a diferença.
 
 Regras: vencimento = mês + dia de vencimento do cartão (dia 31 vira o último dia em meses curtos).
-Total disponível = físico + saldos bancários + outros dinheiros · Total devido = faturas não pagas · Patrimônio = disponível − devido.
+Conta corrente: total disponível = físico + saldos bancários; patrimônio líquido = disponível − devido.
+Poupança = outros dinheiros (em reais). Patrimônio total = patrimônio líquido + poupança · Total devido = faturas não pagas · Patrimônio = disponível − devido.

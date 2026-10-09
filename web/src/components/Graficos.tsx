@@ -56,7 +56,7 @@ const Vazio = ({ texto }: { texto: string }) => (
 );
 
 /** Donut: distribuição do dinheiro + legenda-tabela com valor e %. */
-export function GraficoDistribuicao({ dados }: { dados: { nome: string; cor: string; valor: number }[] }) {
+export function GraficoDistribuicao({ dados }: { dados: { nome: string; cor: string; valor: number; detalhe?: string }[] }) {
   const cores = useCores();
   const total = dados.reduce((s, d) => s + d.valor, 0);
   if (total <= 0) return <Vazio texto="Sem saldos positivos neste mês." />;
@@ -85,7 +85,10 @@ export function GraficoDistribuicao({ dados }: { dados: { nome: string; cor: str
         {dados.map((d) => (
           <li key={d.nome} className="flex items-center gap-2">
             <span className="inline-block size-3 shrink-0 rounded-full" style={{ backgroundColor: d.cor }} />
-            <span className="truncate">{d.nome}</span>
+            <span className="min-w-0">
+              <span className="block truncate">{d.nome}</span>
+              {d.detalhe && <span className="block text-xs text-slate-500 tabular-nums dark:text-slate-400">{d.detalhe}</span>}
+            </span>
             <span className="ml-auto text-xs text-slate-500 tabular-nums dark:text-slate-400">{((d.valor / total) * 100).toFixed(1).replace(".", ",")}%</span>
             <span className="w-28 text-right font-medium tabular-nums">{formatarBRL(d.valor)}</span>
           </li>
@@ -165,6 +168,37 @@ export function GraficoFaturas({ faturas }: { faturas: FaturaDetalhe[] }) {
             ))}
           </Bar>
         </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+/** Linha única: evolução da poupança (outros dinheiros, em reais). */
+export function GraficoPoupanca({ historico }: { historico: Totais[] }) {
+  const cores = useCores();
+  const inicio = historico.findIndex((h) => h.temDados && h.poupanca !== 0);
+  if (inicio === -1) return <Vazio texto="Sem histórico ainda." />;
+
+  const dados = historico.slice(inicio).map((h) => ({ rotulo: nomeMesCurto(h.mes), poupanca: h.temDados ? h.poupanca : null }));
+
+  return (
+    <div className="h-56">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={dados} margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
+          <CartesianGrid stroke={cores.grade} vertical={false} />
+          <XAxis dataKey="rotulo" stroke={cores.eixo} tickLine={false} axisLine={false} fontSize={12} />
+          <YAxis stroke={cores.eixo} tickLine={false} axisLine={false} fontSize={12} width={72} tickFormatter={formatarCompacto} />
+          <Tooltip content={<CaixaTooltip />} cursor={{ stroke: cores.eixo, strokeDasharray: "3 3" }} />
+          <Line
+            type="monotone"
+            dataKey="poupanca"
+            name="Poupança"
+            stroke={cores.patrimonio}
+            strokeWidth={2}
+            dot={{ r: 3, fill: cores.patrimonio, stroke: cores.superficie, strokeWidth: 2 }}
+            activeDot={{ r: 5, stroke: cores.superficie, strokeWidth: 2 }}
+          />
+        </LineChart>
       </ResponsiveContainer>
     </div>
   );

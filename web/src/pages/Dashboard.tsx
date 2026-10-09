@@ -1,12 +1,12 @@
 import { Link } from "react-router-dom";
-import { GraficoDistribuicao, GraficoEvolucao, GraficoFaturas } from "../components/Graficos";
+import { GraficoDistribuicao, GraficoEvolucao, GraficoFaturas, GraficoPoupanca } from "../components/Graficos";
 import { SeletorMes } from "../components/SeletorMes";
 import { Aviso, Bolinha, Painel } from "../components/ui";
 import { UsoLimite } from "../components/UsoLimite";
 import { ProximosVencimentos } from "../components/Vencimentos";
 import { useMes } from "../contexts/Mes";
-import { api } from "../lib/api";
-import { formatarBRL, formatarPct } from "../lib/formato";
+import { api, type Variacao } from "../lib/api";
+import { formatarBRL, formatarMoeda, formatarPct } from "../lib/formato";
 import { nomeMes, nomeMesCurto, somarMeses } from "../lib/mes";
 import { useApi } from "../lib/useApi";
 
@@ -19,6 +19,22 @@ function CardResumo({ titulo, valor, detalhe, destaque }: { titulo: string; valo
     </Painel>
   );
 }
+
+function CardVariacao({ v }: { v: Variacao | null | undefined }) {
+  const sobe = v ? v.valor >= 0 : false;
+  return (
+    <CardResumo
+      titulo="Variação vs mês anterior"
+      valor={v ? `${sobe ? "▲ +" : "▼ −"}${formatarBRL(Math.abs(v.valor))}` : "—"}
+      destaque={v ? (sobe ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400") : "text-slate-400"}
+      detalhe={v?.pct != null ? formatarPct(v.pct) : undefined}
+    />
+  );
+}
+
+const TituloSecao = ({ children }: { children: React.ReactNode }) => (
+  <h2 className="border-b border-slate-200 pb-2 text-lg font-semibold dark:border-slate-800">{children}</h2>
+);
 
 export function DashboardPage() {
   const { mes } = useMes();
@@ -34,9 +50,6 @@ export function DashboardPage() {
 
   const r = resumo.dados;
   const erro = resumo.erro ?? historico.erro ?? vencimentos.erro;
-
-  const v = r?.variacao;
-  const sobe = v ? v.valor >= 0 : false;
 
   return (
     <div className="space-y-6">
@@ -58,12 +71,14 @@ export function DashboardPage() {
         </Aviso>
       )}
 
+      <TituloSecao>Conta corrente</TituloSecao>
+
       {r && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <CardResumo
             titulo="Total disponível"
             valor={formatarBRL(r.disponivel)}
-            detalhe={`Físico ${formatarBRL(r.dinheiro_fisico)} · Bancos ${formatarBRL(r.bancos)}${r.outros ? ` · Outros ${formatarBRL(r.outros)}` : ""}`}
+            detalhe={`Físico ${formatarBRL(r.dinheiro_fisico)} · Bancos ${formatarBRL(r.bancos)}`}
           />
           <CardResumo titulo="Total devido" valor={formatarBRL(r.devido)} destaque={r.devido > 0 ? "text-red-600 dark:text-red-400" : ""} />
           <CardResumo
@@ -71,12 +86,7 @@ export function DashboardPage() {
             valor={formatarBRL(r.patrimonio)}
             destaque={r.patrimonio < 0 ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}
           />
-          <CardResumo
-            titulo="Variação vs mês anterior"
-            valor={v ? `${sobe ? "▲ +" : "▼ −"}${formatarBRL(Math.abs(v.valor))}` : "—"}
-            destaque={v ? (sobe ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400") : "text-slate-400"}
-            detalhe={v?.pct != null ? formatarPct(v.pct) : undefined}
-          />
+          <CardVariacao v={r.variacao} />
         </div>
       )}
 
@@ -138,6 +148,48 @@ export function DashboardPage() {
           </div>
         )}
       </Painel>
+
+      <div className="pt-4">
+        <TituloSecao>Poupança</TituloSecao>
+      </div>
+
+      {r && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <CardResumo titulo="Total na poupança" valor={formatarBRL(r.poupanca)} destaque="text-sky-600 dark:text-sky-400" />
+          <CardVariacao v={r.variacao_poupanca} />
+          <CardResumo
+            titulo="Patrimônio total"
+            valor={formatarBRL(r.patrimonio_total)}
+            detalhe={`Conta corrente ${formatarBRL(r.patrimonio)} · Poupança ${formatarBRL(r.poupanca)}`}
+            destaque={r.patrimonio_total < 0 ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}
+          />
+        </div>
+      )}
+
+      {r && r.distribuicao_poupanca.length === 0 && r.poupanca === 0 ? (
+        <Aviso>
+          Nenhum valor em poupança.{" "}
+          <Link to="/bancos" className="font-medium underline">
+            Cadastrar em Outros dinheiros
+          </Link>
+        </Aviso>
+      ) : (
+        <div className="grid gap-6 lg:grid-cols-5">
+          <Painel titulo="Distribuição da poupança" className="lg:col-span-3">
+            {r && (
+              <GraficoDistribuicao
+                dados={r.distribuicao_poupanca.map((d) => ({
+                  ...d,
+                  detalhe: d.moeda === "BRL" ? undefined : formatarMoeda(d.valor_original, d.moeda),
+                }))}
+              />
+            )}
+          </Painel>
+          <Painel titulo="Evolução da poupança" className="lg:col-span-2">
+            {historico.dados && <GraficoPoupanca historico={historico.dados} />}
+          </Painel>
+        </div>
+      )}
     </div>
   );
 }

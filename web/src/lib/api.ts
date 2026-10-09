@@ -94,10 +94,13 @@ export interface Totais {
   temDados: boolean;
   dinheiro_fisico: number;
   bancos: number;
-  outros: number;
+  /** conta corrente: físico + bancos */
   disponivel: number;
   devido: number;
   patrimonio: number;
+  /** outros dinheiros em reais */
+  poupanca: number;
+  patrimonio_total: number;
 }
 
 export interface FaturaDetalhe {
@@ -112,10 +115,17 @@ export interface FaturaDetalhe {
   vencimento: string;
 }
 
+export interface Variacao {
+  valor: number;
+  pct: number | null;
+}
+
 export interface Resumo extends Totais {
   anterior: Totais;
-  variacao: { valor: number; pct: number | null } | null;
+  variacao: Variacao | null;
+  variacao_poupanca: Variacao | null;
   distribuicao: { nome: string; cor: string; valor: number }[];
+  distribuicao_poupanca: { nome: string; cor: string; valor: number; moeda: Moeda; valor_original: number }[];
   faturas: FaturaDetalhe[];
   uso_limite: { cartao_id: number; banco_nome: string; cor: string; limite_centavos: number; usado_centavos: number }[];
 }

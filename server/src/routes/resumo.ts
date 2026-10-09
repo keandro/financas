@@ -25,15 +25,22 @@ resumoRouter.get("/resumo/:mes", (req, res) => {
   const atual = totaisDoMes(mes);
   const anterior = totaisDoMes(somarMeses(mes, -1));
 
-  let variacao: { valor: number; pct: number | null } | null = null;
-  if (atual.temDados && anterior.temDados) {
-    const valor = atual.patrimonio - anterior.patrimonio;
-    variacao = { valor, pct: anterior.patrimonio === 0 ? null : (valor / Math.abs(anterior.patrimonio)) * 100 };
-  }
+  const variar = (agora: number, antes: number) => {
+    if (!atual.temDados || !anterior.temDados) return null;
+    const valor = agora - antes;
+    return { valor, pct: antes === 0 ? null : (valor / Math.abs(antes)) * 100 };
+  };
+  const variacao = variar(atual.patrimonio, anterior.patrimonio);
+  const variacao_poupanca = variar(atual.poupanca, anterior.poupanca);
 
-  const bancos = saldosDoMes(mes)
-    .filter((s) => s.valor_brl !== null)
+  const contas = saldosDoMes(mes).filter((s) => s.valor_brl !== null);
+  const bancos = contas
+    .filter((s) => s.tipo === "banco")
     .map((s) => ({ nome: s.nome, cor: s.cor, valor: s.valor_brl as number }))
+    .sort((a, b) => b.valor - a.valor);
+  const distribuicao_poupanca = contas
+    .filter((s) => s.tipo === "outro" && (s.valor_brl as number) > 0)
+    .map((s) => ({ nome: s.nome, cor: s.cor, valor: s.valor_brl as number, moeda: s.moeda, valor_original: s.valor as number }))
     .sort((a, b) => b.valor - a.valor);
 
   const distribuicao = [{ nome: "Dinheiro físico", cor: "#10B981", valor: atual.dinheiro_fisico }, ...bancos].filter(
@@ -54,7 +61,16 @@ resumoRouter.get("/resumo/:mes", (req, res) => {
     )
     .all(mes);
 
-  res.json({ ...atual, anterior, variacao, distribuicao, faturas: faturasDoMes(mes), uso_limite });
+  res.json({
+    ...atual,
+    anterior,
+    variacao,
+    variacao_poupanca,
+    distribuicao,
+    distribuicao_poupanca,
+    faturas: faturasDoMes(mes),
+    uso_limite,
+  });
 });
 
 /** Evolução dos últimos N meses (padrão 12) terminando em :mes. */
