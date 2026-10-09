@@ -69,4 +69,15 @@ export const migrations: string[] = [
   `
   ALTER TABLE bancos ADD COLUMN tipo TEXT NOT NULL DEFAULT 'banco' CHECK (tipo IN ('banco', 'outro'));
   `,
+
+  // 6 — moeda dos "outros dinheiros" + cotação mensal (taxa = reais por 1 unidade × 10000)
+  `
+  ALTER TABLE bancos ADD COLUMN moeda TEXT NOT NULL DEFAULT 'BRL' CHECK (moeda IN ('BRL', 'USD', 'EUR'));
+  CREATE TABLE cotacoes (
+    mes   TEXT    NOT NULL,
+    moeda TEXT    NOT NULL CHECK (moeda IN ('USD', 'EUR')),
+    taxa  INTEGER NOT NULL CHECK (taxa > 0),
+    PRIMARY KEY (mes, moeda)
+  );
+  `,
 ];

@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { api, type Movimentacao } from "../lib/api";
-import { formatarBRL, formatarData } from "../lib/formato";
+import { SIMBOLO, formatarData, formatarMoeda, type Moeda } from "../lib/formato";
 import { CampoMoeda } from "./CampoMoeda";
 import { Botao, inputClasse } from "./ui";
 
@@ -11,6 +11,7 @@ interface Props {
   /** movimentações desta conta no mês */
   movimentacoes: Movimentacao[];
   titulo?: string;
+  moeda?: Moeda;
   /** chamado após adicionar/remover, com a variação aplicada ao dinheiro físico */
   onAlterado: (lista: Movimentacao[], variacao: number) => void;
 }
@@ -27,7 +28,8 @@ function ultimoDia(mes: string) {
 }
 
 /** Entradas e saídas de uma conta (dinheiro físico ou banco): cada uma já soma/subtrai do valor do mês ao ser adicionada. */
-export function MovimentacoesDinheiro({ mes, bancoId, movimentacoes, titulo = "Movimentações do mês", onAlterado }: Props) {
+export function MovimentacoesDinheiro({ mes, bancoId, movimentacoes, titulo = "Movimentações do mês", moeda = "BRL", onAlterado }: Props) {
+  const formatarBRL = (c: number) => formatarMoeda(c, moeda);
   const [tipo, setTipo] = useState<"entrada" | "saida">("entrada");
   const [valor, setValor] = useState<number | null>(null);
   const [descricao, setDescricao] = useState("");
@@ -103,7 +105,7 @@ export function MovimentacoesDinheiro({ mes, bancoId, movimentacoes, titulo = "M
           {botaoTipo("saida", "− Saída", "bg-white text-red-600 shadow-sm dark:bg-slate-800 dark:text-red-400")}
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <CampoMoeda aria-label={`Valor da movimentação${sufixo}`} valor={valor} onChange={setValor} />
+          <CampoMoeda aria-label={`Valor da movimentação${sufixo}`} simbolo={SIMBOLO[moeda]} valor={valor} onChange={setValor} />
           <input
             type="date"
             aria-label={`Data da movimentação${sufixo}`}

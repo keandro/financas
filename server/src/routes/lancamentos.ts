@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db } from "../db/index.js";
 import { ajustarConta, definirConta, saldosDoMes, valorDaConta, type Conta } from "../lib/contas.js";
+import { MOEDAS_ESTRANGEIRAS, cotacaoDoMes, definirCotacao } from "../lib/cotacoes.js";
 import { HttpError, ehCentavos, exigir } from "../lib/http.js";
 import { dataVencimento, mesValido } from "../lib/mes.js";
 
@@ -24,6 +25,7 @@ lancamentosRouter.get("/:mes", (req, res) => {
       cor: s.cor,
       ativo: s.ativo,
       tipo: s.tipo,
+      moeda: s.moeda,
       valor_centavos: s.valor,
       herdado_de: s.herdado_de,
     }));
@@ -62,6 +64,7 @@ lancamentosRouter.get("/:mes", (req, res) => {
     saldos,
     faturas,
     movimentacoes,
+    cotacoes: Object.fromEntries(MOEDAS_ESTRANGEIRAS.map((m) => [m, cotacaoDoMes(m, mes)])),
   });
 });
 
@@ -72,7 +75,11 @@ lancamentosRouter.get("/:mes", (req, res) => {
 lancamentosRouter.put("/:mes", (req, res) => {
   const { mes } = req.params;
   exigir(mesValido(mes), "Mês inválido (use YYYY-MM)");
-  const { dinheiro_fisico = null, saldos = [], faturas = [] } = req.body ?? {};
+  const { dinheiro_fisico = null, saldos = [], faturas = [], cotacoes = {} } = req.body ?? {};
+  for (const m of MOEDAS_ESTRANGEIRAS) {
+    const t = cotacoes?.[m];
+    exigir(t == null || (Number.isSafeInteger(t) && t > 0), `Cotação de ${m} inválida`);
+  }
 
   exigir(dinheiro_fisico === null || ehCentavos(dinheiro_fisico), "Dinheiro físico inválido");
   exigir(Array.isArray(saldos) && Array.isArray(faturas), "Formato inválido");
@@ -92,7 +99,9 @@ lancamentosRouter.put("/:mes", (req, res) => {
   };
 
   const ajustes = db.transaction(() => {
-    definirSeInformado(null, dinheiro_fisico);
+    for (const m of MOEDAS_ESTRANGEIRAS) if (cotacoes?.[m] != null) definirCotacao(m, mes, cotacoes[m]);
+    // campo ausente no corpo = não mexer (só null explícito limpa)
+    if (req.body && "dinheiro_fisico" in req.body) definirSeInformado(null, dinheiro_fisico);
     for (const s of saldos) definirSeInformado(s.banco_id, s.valor_centavos);
 
     // Pagamento de fatura mexe no saldo do banco do cartão (e nos meses seguintes):

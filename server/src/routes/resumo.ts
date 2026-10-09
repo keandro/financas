@@ -2,7 +2,8 @@ import { Router } from "express";
 import { db } from "../db/index.js";
 import { saldosDoMes } from "../lib/contas.js";
 import { faturasDoMes, faturasEmAberto, totaisDoMes } from "../lib/calculos.js";
-import { exigir } from "../lib/http.js";
+import { buscarCotacaoAtual } from "../lib/cotacoes.js";
+import { HttpError, exigir } from "../lib/http.js";
 import { mesValido, somarMeses } from "../lib/mes.js";
 
 export const resumoRouter = Router();
@@ -31,8 +32,8 @@ resumoRouter.get("/resumo/:mes", (req, res) => {
   }
 
   const bancos = saldosDoMes(mes)
-    .filter((s) => s.valor !== null)
-    .map((s) => ({ nome: s.nome, cor: s.cor, valor: s.valor as number }))
+    .filter((s) => s.valor_brl !== null)
+    .map((s) => ({ nome: s.nome, cor: s.cor, valor: s.valor_brl as number }))
     .sort((a, b) => b.valor - a.valor);
 
   const distribuicao = [{ nome: "Dinheiro físico", cor: "#10B981", valor: atual.dinheiro_fisico }, ...bancos].filter(
@@ -67,4 +68,13 @@ resumoRouter.get("/historico/:mes", (req, res) => {
 /** Todas as faturas não pagas (de qualquer mês), ordenadas por vencimento. */
 resumoRouter.get("/vencimentos", (_req, res) => {
   res.json(faturasEmAberto());
+});
+
+/** Cotação atual de USD e EUR (consulta externa, sem dados do usuário). */
+resumoRouter.get("/cotacoes/atual", async (_req, res) => {
+  try {
+    res.json(await buscarCotacaoAtual());
+  } catch (e) {
+    throw new HttpError(502, `Não foi possível buscar a cotação (${(e as Error).message}). Informe manualmente.`);
+  }
 });

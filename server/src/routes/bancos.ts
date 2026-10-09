@@ -31,7 +31,7 @@ function lerCartao(c: unknown): CartaoEntrada | null | undefined {
 function listar() {
   const linhas = db
     .prepare(
-      `SELECT b.id, b.nome, b.cor, b.ativo, b.tipo, b.criado_em,
+      `SELECT b.id, b.nome, b.cor, b.ativo, b.tipo, b.moeda, b.criado_em,
               c.id AS cartao_id, c.dia_fechamento, c.dia_vencimento, c.limite_centavos, c.ativo AS cartao_ativo,
               (SELECT COUNT(*) FROM saldos s WHERE s.banco_id = b.id) +
               (SELECT COUNT(*) FROM faturas f WHERE f.cartao_id = c.id) AS lancamentos
@@ -45,6 +45,7 @@ function listar() {
     cor: l.cor,
     ativo: l.ativo === 1,
     tipo: l.tipo as "banco" | "outro",
+    moeda: l.moeda as "BRL" | "USD" | "EUR",
     criado_em: l.criado_em,
     lancamentos: l.lancamentos as number,
     cartao: l.cartao_id
@@ -89,10 +90,15 @@ bancosRouter.post("/", (req, res) => {
   exigir(tipo === "banco" || tipo === "outro", "Tipo inválido");
   const cartao = lerCartao(req.body.cartao);
   exigir(!(tipo === "outro" && cartao), "Outros dinheiros não têm cartão");
+  const moeda = req.body.moeda ?? "BRL";
+  exigir(["BRL", "USD", "EUR"].includes(moeda), "Moeda inválida");
+  exigir(tipo === "outro" || moeda === "BRL", "Bancos são sempre em reais");
 
   const id = db.transaction(() => {
     const novoId = Number(
-      db.prepare("INSERT INTO bancos (nome, cor, tipo) VALUES (?, ?, ?)").run(nome.trim(), cor, tipo).lastInsertRowid,
+      db
+        .prepare("INSERT INTO bancos (nome, cor, tipo, moeda) VALUES (?, ?, ?, ?)")
+        .run(nome.trim(), cor, tipo, moeda).lastInsertRowid,
     );
     if (cartao) salvarCartao(novoId, cartao);
     return novoId;
@@ -105,14 +111,22 @@ bancosRouter.put("/:id", (req, res) => {
   const atual = buscar(id);
   if (!atual) throw new HttpError(404, "Banco não encontrado");
 
-  const { nome = atual.nome, cor = atual.cor, ativo = atual.ativo } = req.body ?? {};
+  const { nome = atual.nome, cor = atual.cor, ativo = atual.ativo, moeda = atual.moeda } = req.body ?? {};
+  exigir(["BRL", "USD", "EUR"].includes(moeda), "Moeda inválida");
+  exigir(atual.tipo === "outro" || moeda === "BRL", "Bancos são sempre em reais");
   exigir(typeof nome === "string" && nome.trim(), "Nome é obrigatório");
   exigir(ehCor(cor), "Cor inválida (use #RRGGBB)");
   const cartao = lerCartao(req.body?.cartao);
   exigir(!(atual.tipo === "outro" && cartao), "Outros dinheiros não têm cartão");
 
   db.transaction(() => {
-    db.prepare("UPDATE bancos SET nome = ?, cor = ?, ativo = ? WHERE id = ?").run(nome.trim(), cor, ativo ? 1 : 0, id);
+    db.prepare("UPDATE bancos SET nome = ?, cor = ?, ativo = ?, moeda = ? WHERE id = ?").run(
+      nome.trim(),
+      cor,
+      ativo ? 1 : 0,
+      moeda,
+      id,
+    );
     if (cartao !== undefined) salvarCartao(id, cartao);
   })();
   res.json(buscar(id));

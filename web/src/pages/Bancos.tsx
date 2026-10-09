@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { CampoMoeda } from "../components/CampoMoeda";
 import { Aviso, Botao, Bolinha, Painel, inputClasse } from "../components/ui";
 import { api, type Banco, type BancoEntrada, type TipoConta } from "../lib/api";
-import { formatarBRL } from "../lib/formato";
+import { NOME_MOEDA, SIMBOLO, formatarBRL, type Moeda } from "../lib/formato";
 import { useApi } from "../lib/useApi";
 
 const CORES_SUGERIDAS = ["#8A05BE", "#EC7000", "#F5C400", "#0070AF", "#CC092F", "#FF7A00", "#00A868", "#1E3A8A", "#64748B"];
@@ -106,7 +106,9 @@ function CardBanco({ banco, onEditar, onAlternar, onExcluir }: { banco: Banco; o
 
       <div className="mt-3 text-sm text-slate-600 dark:text-slate-400">
         {banco.tipo === "outro" ? (
-          <p>💰 Outros dinheiros</p>
+          <p>
+            💰 {NOME_MOEDA[banco.moeda]} ({SIMBOLO[banco.moeda]})
+          </p>
         ) : c && c.ativo ? (
           <>
             <p>
@@ -136,6 +138,7 @@ function FormBanco({ banco, tipo, onFechar, onSalvo }: { banco: Banco | null; ti
   const cartaoAtual = banco?.cartao?.ativo ? banco.cartao : null;
   const [nome, setNome] = useState(banco?.nome ?? "");
   const [cor, setCor] = useState(banco?.cor ?? CORES_SUGERIDAS[0]);
+  const [moeda, setMoeda] = useState<Moeda>(banco?.moeda ?? "BRL");
   const [temCartao, setTemCartao] = useState(!!cartaoAtual);
   const [fechamento, setFechamento] = useState(cartaoAtual?.dia_fechamento?.toString() ?? "");
   const [vencimento, setVencimento] = useState(cartaoAtual?.dia_vencimento?.toString() ?? "");
@@ -154,6 +157,7 @@ function FormBanco({ banco, tipo, onFechar, onSalvo }: { banco: Banco | null; ti
 
     const dados: BancoEntrada = {
       ...(banco ? {} : { tipo }),
+      ...(tipo === "outro" ? { moeda } : {}),
       nome,
       cor,
       // sem cartão: no banco novo não envia; no existente envia null (desativa o cartão)
@@ -202,6 +206,32 @@ function FormBanco({ banco, tipo, onFechar, onSalvo }: { banco: Banco | null; ti
             <input type="color" value={cor} onChange={(e) => setCor(e.target.value.toUpperCase())} className="size-8 cursor-pointer rounded" aria-label="Cor personalizada" />
           </div>
         </div>
+
+        {tipo === "outro" && (
+          <div className="space-y-1">
+            <span className="text-sm font-medium">Moeda</span>
+            <div className="flex gap-1 rounded-lg bg-slate-100 p-1 dark:bg-slate-950">
+              {(["BRL", "USD", "EUR"] as Moeda[]).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setMoeda(m)}
+                  aria-pressed={moeda === m}
+                  className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                    moeda === m
+                      ? "bg-white text-emerald-700 shadow-sm dark:bg-slate-800 dark:text-emerald-300"
+                      : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+                  }`}
+                >
+                  {NOME_MOEDA[m]} ({SIMBOLO[m]})
+                </button>
+              ))}
+            </div>
+            {banco && moeda !== banco.moeda && (
+              <p className="text-xs text-amber-600 dark:text-amber-400">Os valores já lançados não são convertidos: passam a ser lidos em {NOME_MOEDA[moeda]}.</p>
+            )}
+          </div>
+        )}
 
         {tipo === "banco" && (
         <label className="flex items-center gap-2 text-sm font-medium">

@@ -22,7 +22,7 @@ export function totaisDoMes(mes: string): Totais {
   const fisico = valorDaConta(null, mes).valor;
   const saldos = saldosDoMes(mes).filter((s) => s.valor !== null);
   const somar = (tipo: "banco" | "outro") =>
-    saldos.filter((s) => s.tipo === tipo).reduce((s, b) => s + (b.valor ?? 0), 0);
+    saldos.filter((s) => s.tipo === tipo).reduce((s, b) => s + (b.valor_brl ?? 0), 0);
   const somaBancos = somar("banco");
   const somaOutros = somar("outro");
   const faturas = qFaturas.get(mes) as { n: number; v: number };

@@ -1,3 +1,5 @@
+import type { Moeda } from "./formato";
+
 export interface Cartao {
   id: number;
   dia_fechamento: number | null;
@@ -13,6 +15,7 @@ export interface Banco {
   ativo: boolean;
   /** "outro" = outros dinheiros (aplicações etc.), sem cartão */
   tipo: TipoConta;
+  moeda: Moeda;
   criado_em: string;
   /** quantidade de saldos + faturas lançados (perdidos ao excluir) */
   lancamentos: number;
@@ -30,6 +33,7 @@ export type TipoConta = "banco" | "outro";
 
 export interface BancoEntrada {
   tipo?: TipoConta;
+  moeda?: Moeda;
   nome: string;
   cor: string;
   ativo?: boolean;
@@ -42,6 +46,7 @@ export interface SaldoLancamento {
   cor: string;
   ativo: boolean;
   tipo: TipoConta;
+  moeda: Moeda;
   valor_centavos: number | null;
   /** mês de onde o saldo foi herdado (null = gravado neste mês) */
   herdado_de: string | null;
@@ -78,7 +83,11 @@ export interface Lancamento {
   saldos: SaldoLancamento[];
   faturas: FaturaLancamento[];
   movimentacoes: Movimentacao[];
+  /** taxa = reais por 1 unidade × 10000 */
+  cotacoes: Record<MoedaEstrangeira, { taxa: number | null; herdado_de: string | null }>;
 }
+
+export type MoedaEstrangeira = "USD" | "EUR";
 
 export interface Totais {
   mes: string;
@@ -135,6 +144,7 @@ export const api = {
       dinheiro_fisico: number | null;
       saldos: { banco_id: number; valor_centavos: number | null }[];
       faturas: { cartao_id: number; valor_centavos: number | null; paga: boolean }[];
+      cotacoes: Partial<Record<MoedaEstrangeira, number>>;
     },
   ) => req<{ ok: true; ajustes: { banco_id: number; nome: string; ajuste_centavos: number }[] }>("PUT", `/lancamentos/${mes}`, dados),
 
@@ -143,6 +153,7 @@ export const api = {
   removerMovimentacao: (mes: string, id: number) =>
     req<{ ok: true; valor_conta: number | null }>("DELETE", `/lancamentos/${mes}/movimentacoes/${id}`),
 
+  cotacaoAtual: () => req<Record<MoedaEstrangeira, number>>("GET", "/cotacoes/atual"),
   meses: () => req<string[]>("GET", "/meses"),
   resumo: (mes: string) => req<Resumo>("GET", `/resumo/${mes}`),
   historico: (mes: string, n = 12) => req<Totais[]>("GET", `/historico/${mes}?n=${n}`),

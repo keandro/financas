@@ -5,8 +5,8 @@ import { UsoLimite } from "../components/UsoLimite";
 import { SeletorMes } from "../components/SeletorMes";
 import { Aviso, Botao, Bolinha, Painel } from "../components/ui";
 import { useMes } from "../contexts/Mes";
-import { api, type Lancamento, type Movimentacao } from "../lib/api";
-import { formatarBRL, formatarData } from "../lib/formato";
+import { api, type Lancamento, type MoedaEstrangeira, type Movimentacao } from "../lib/api";
+import { NOME_MOEDA, SIMBOLO, formatarBRL, formatarData, paraReais, type Moeda } from "../lib/formato";
 import { nomeMesCurto } from "../lib/mes";
 import { useApi } from "../lib/useApi";
 
@@ -55,10 +55,24 @@ export function LancamentoPage() {
   const totais = useMemo(() => {
     if (!form) return null;
     const somaAjustes = [...ajustes.values()].reduce((s, v) => s + v, 0);
-    const disponivel = (form.dinheiro_fisico ?? 0) + form.saldos.reduce((s, b) => s + (b.valor_centavos ?? 0), 0) + somaAjustes;
+    const emReais = (b: Lancamento["saldos"][number]) =>
+      paraReais(b.valor_centavos ?? 0, b.moeda, b.moeda === "BRL" ? null : form.cotacoes[b.moeda].taxa) ?? 0;
+    const disponivel = (form.dinheiro_fisico ?? 0) + form.saldos.reduce((s, b) => s + emReais(b), 0) + somaAjustes;
     const devido = form.faturas.reduce((s, f) => s + (f.paga ? 0 : (f.valor_centavos ?? 0)), 0);
     return { disponivel, devido, patrimonio: disponivel - devido };
   }, [form, ajustes]);
+
+  const [erroCotacao, setErroCotacao] = useState<string | null>(null);
+  async function buscarCotacao() {
+    if (!form) return;
+    setErroCotacao(null);
+    try {
+      const c = await api.cotacaoAtual();
+      setForm({ ...form, cotacoes: { USD: { taxa: c.USD, herdado_de: null }, EUR: { taxa: c.EUR, herdado_de: null } } });
+    } catch (e) {
+      setErroCotacao((e as Error).message);
+    }
+  }
 
   /** Movimentações já foram gravadas no servidor: aplica a variação no form e no "original" (sem perder outras edições). */
   function aplicarMovimentacao(bancoId: number | null, listaDaConta: Movimentacao[], variacao: number) {
@@ -88,6 +102,11 @@ export function LancamentoPage() {
         dinheiro_fisico: form.dinheiro_fisico,
         saldos: form.saldos.map(({ banco_id, valor_centavos }) => ({ banco_id, valor_centavos })),
         faturas: form.faturas.map(({ cartao_id, valor_centavos, paga }) => ({ cartao_id, valor_centavos, paga })),
+        cotacoes: Object.fromEntries(
+          Object.entries(form.cotacoes)
+            .filter(([, c]) => c.taxa !== null)
+            .map(([m, c]) => [m, c.taxa]),
+        ),
       });
       recarregar();
       const detalhes = r.ajustes.map((a) => `${a.nome} ${a.ajuste_centavos > 0 ? "+" : "−"}${formatarBRL(Math.abs(a.ajuste_centavos))}`);
@@ -106,8 +125,35 @@ export function LancamentoPage() {
     if (!form) return null;
     const lista = form.saldos.filter((x) => x.tipo === tipo);
     if (lista.length === 0) return <p className="text-sm text-slate-500">Nenhum banco ativo cadastrado.</p>;
+    const moedasUsadas = [...new Set(lista.map((x) => x.moeda))].filter((m): m is MoedaEstrangeira => m !== "BRL");
     return (
       <div className="space-y-5">
+        {moedasUsadas.length > 0 && (
+          <div className="space-y-2 rounded-xl bg-slate-50 p-3 dark:bg-slate-950/60">
+            {moedasUsadas.map((m) => (
+              <div key={m} className="grid grid-cols-[1fr_minmax(0,11rem)] items-center gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">
+                    Cotação {NOME_MOEDA[m]} ({SIMBOLO[m]} 1)
+                  </p>
+                  {form.cotacoes[m].herdado_de && <p className="text-xs text-slate-500 dark:text-slate-400">↳ Trazido de {nomeMesCurto(form.cotacoes[m].herdado_de!)}</p>}
+                </div>
+                <CampoMoeda
+                  aria-label={`Cotação ${m}`}
+                  casas={4}
+                  valor={form.cotacoes[m].taxa}
+                  onChange={(v) => setForm({ ...form, cotacoes: { ...form.cotacoes, [m]: { taxa: v, herdado_de: null } } })}
+                />
+              </div>
+            ))}
+            <div className="flex items-center justify-end gap-3">
+              {erroCotacao && <span className="text-xs text-red-600 dark:text-red-400">{erroCotacao}</span>}
+              <button type="button" onClick={buscarCotacao} className="text-xs font-medium text-emerald-700 hover:underline dark:text-emerald-400">
+                ⟳ Buscar cotação atual
+              </button>
+            </div>
+          </div>
+        )}
         {lista.map((s) => (
           <LinhaConta
             key={s.banco_id}
@@ -115,6 +161,8 @@ export function LancamentoPage() {
             cor={s.cor}
             inativo={!s.ativo}
             rotuloCampo={`Saldo ${s.nome}`}
+            moeda={s.moeda}
+            taxa={s.moeda === "BRL" ? null : form.cotacoes[s.moeda].taxa}
             permitirNegativo
             valor={s.valor_centavos}
             onChange={(v) => setForm({ ...form, saldos: form.saldos.map((x) => (x.banco_id === s.banco_id ? { ...x, valor_centavos: v } : x)) })}
@@ -264,6 +312,9 @@ export function LancamentoPage() {
 }
 
 interface LinhaContaProps {
+  moeda?: Moeda;
+  /** cotação da moeda (× 10000), para mostrar o valor em reais */
+  taxa?: number | null;
   nome: string;
   cor: string;
   inativo?: boolean;
@@ -283,6 +334,7 @@ interface LinhaContaProps {
 
 /** Uma conta (dinheiro físico ou banco): valor do mês + botão que abre as entradas/saídas. */
 function LinhaConta(p: LinhaContaProps) {
+  const moeda = p.moeda ?? "BRL";
   const n = p.movimentacoes.length;
   return (
     <div className="space-y-2">
@@ -294,8 +346,13 @@ function LinhaConta(p: LinhaContaProps) {
             {p.inativo && <span className="text-xs text-slate-500 dark:text-slate-400">(inativo)</span>}
           </div>
         </div>
-        <CampoMoeda aria-label={p.rotuloCampo} permitirNegativo={p.permitirNegativo} valor={p.valor} onChange={p.onChange} />
+        <CampoMoeda aria-label={p.rotuloCampo} simbolo={SIMBOLO[moeda]} permitirNegativo={p.permitirNegativo} valor={p.valor} onChange={p.onChange} />
       </div>
+      {moeda !== "BRL" && p.valor !== null && (
+        <p className="-mt-1 text-right text-xs text-slate-500 tabular-nums dark:text-slate-400">
+          {p.taxa ? `≈ ${formatarBRL(paraReais(p.valor, moeda, p.taxa)!)}` : "sem cotação"}
+        </p>
+      )}
       <div className="-mt-1 flex flex-wrap items-center justify-between gap-2">
         <span className="text-xs text-slate-500 dark:text-slate-400">{p.herdadoDe ? `↳ Trazido de ${nomeMesCurto(p.herdadoDe)}` : ""}</span>
         <button
@@ -309,7 +366,7 @@ function LinhaConta(p: LinhaContaProps) {
       </div>
       {p.aberta && (
         <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-800">
-          <MovimentacoesDinheiro mes={p.mes} bancoId={p.bancoId} titulo="" movimentacoes={p.movimentacoes} onAlterado={p.onMovimentado} />
+          <MovimentacoesDinheiro mes={p.mes} bancoId={p.bancoId} titulo="" moeda={moeda} movimentacoes={p.movimentacoes} onAlterado={p.onMovimentado} />
         </div>
       )}
       {p.children}
