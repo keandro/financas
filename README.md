@@ -111,7 +111,7 @@ Uso do limite      = faturas não pagas do mês selecionado em diante ÷ limite
 **Modo desenvolvimento**
 
 ```bash
-git clone <url-do-repositorio> financas
+git clone https://github.com/keandro/financas.git
 cd financas
 npm install        # instala server e web (npm workspaces)
 npm run seed       # opcional: dados de exemplo dos últimos 6 meses
