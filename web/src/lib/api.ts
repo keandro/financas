@@ -101,6 +101,7 @@ export interface Totais {
   /** poupança em reais */
   poupanca: number;
   patrimonio_total: number;
+  total_faturas: number;
 }
 
 export interface FaturaDetalhe {

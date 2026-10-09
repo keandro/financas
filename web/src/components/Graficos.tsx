@@ -22,8 +22,8 @@ import { nomeMesCurto } from "../lib/mes";
 function useCores() {
   const { tema } = useTema();
   return tema === "escuro"
-    ? { grade: "#1e293b", eixo: "#94a3b8", superficie: "#0f172a", disponivel: "#3987e5", devido: "#d95926", patrimonio: "#199e70" }
-    : { grade: "#e2e8f0", eixo: "#64748b", superficie: "#ffffff", disponivel: "#2a78d6", devido: "#eb6834", patrimonio: "#1baf7a" };
+    ? { grade: "#1e293b", eixo: "#94a3b8", superficie: "#0f172a", disponivel: "#3987e5", devido: "#d95926", patrimonio: "#199e70", gastos: "#875093" }
+    : { grade: "#e2e8f0", eixo: "#64748b", superficie: "#ffffff", disponivel: "#2a78d6", devido: "#eb6834", patrimonio: "#1baf7a", gastos: "#875093" };
 }
 
 interface ItemTooltip {
@@ -110,12 +110,14 @@ export function GraficoEvolucao({ historico }: { historico: Totais[] }) {
     disponivel: h.temDados ? h.disponivel : null,
     devido: h.temDados ? h.devido : null,
     patrimonio: h.temDados ? h.patrimonio : null,
+    gastos: h.temDados ? h.total_faturas : null,
   }));
 
   const series = [
     { chave: "disponivel", nome: "Disponível", cor: cores.disponivel },
     { chave: "devido", nome: "Devido", cor: cores.devido },
     { chave: "patrimonio", nome: "Patrimônio líquido", cor: cores.patrimonio },
+    { chave: "gastos", nome: "Gastos no cartão", cor: cores.gastos },
   ];
 
   return (

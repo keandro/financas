@@ -35,7 +35,7 @@ O Dashboard tem duas áreas e um seletor de mês (← dropdown →).
 **Conta corrente**
 - Cards de **Total disponível** (dinheiro físico + bancos), **Total devido** (faturas não pagas), **Patrimônio líquido** e **Variação vs mês anterior** (em valor e %).
 - Gráfico de rosca com a **distribuição do dinheiro**, nas cores de cada banco.
-- Gráfico de linha com a **evolução** de disponível, devido e patrimônio.
+- Gráfico de linha com a **evolução** de disponível, devido, patrimônio e gastos no cartão.
 - **Próximos vencimentos** do mês selecionado e do seguinte. Faturas vencidas ficam em vermelho, as que vencem em até 7 dias em amarelo, e há um aviso de faturas em aberto de meses anteriores.
 - **Gastos do cartão** no mês: total gasto (faturas pagas + a pagar), quanto já foi pago, quanto falta pagar e a variação em relação ao mês anterior.
 - Gráfico de **fatura por cartão** e **uso do limite**: soma das faturas não pagas do mês em diante, incluindo parcelas futuras já lançadas, por cartão e no total.

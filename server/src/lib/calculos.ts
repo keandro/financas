@@ -16,10 +16,14 @@ export interface Totais {
   poupanca: number;
   /** patrimônio + poupança */
   patrimonio_total: number;
+  /** gastos do cartão: todas as faturas do mês (pagas ou não) */
+  total_faturas: number;
 }
 
 const qFaturas = db.prepare(
-  "SELECT COUNT(*) AS n, COALESCE(SUM(CASE WHEN paga = 0 THEN valor_centavos END), 0) AS v FROM faturas WHERE mes = ?",
+  `SELECT COUNT(*) AS n, COALESCE(SUM(CASE WHEN paga = 0 THEN valor_centavos END), 0) AS v,
+          COALESCE(SUM(valor_centavos), 0) AS total
+   FROM faturas WHERE mes = ?`,
 );
 
 export function totaisDoMes(mes: string): Totais {
@@ -30,7 +34,7 @@ export function totaisDoMes(mes: string): Totais {
     saldos.filter((s) => s.tipo === tipo).reduce((s, b) => s + (b.valor_brl ?? 0), 0);
   const somaBancos = somar("banco");
   const somaOutros = somar("outro");
-  const faturas = qFaturas.get(mes) as { n: number; v: number };
+  const faturas = qFaturas.get(mes) as { n: number; v: number; total: number };
 
   const dinheiro_fisico = fisico ?? 0;
   const disponivel = dinheiro_fisico + somaBancos;
@@ -44,6 +48,7 @@ export function totaisDoMes(mes: string): Totais {
     patrimonio: disponivel - faturas.v,
     poupanca: somaOutros,
     patrimonio_total: disponivel - faturas.v + somaOutros,
+    total_faturas: faturas.total,
   };
 }
 
