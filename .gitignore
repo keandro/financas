@@ -1,6 +1,37 @@
+# Dependências
 node_modules/
+
+# Build
 dist/
-server/data/*.db
-server/data/*.db-*
-backups/
 *.tsbuildinfo
+
+# Dados pessoais: banco SQLite e backups (NUNCA enviar)
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.sqlite-*
+backups/
+
+# Variáveis de ambiente
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# Editores
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+
+# Configuração local do Claude Code
+.claude/settings.local.json
