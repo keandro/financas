@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { CampoMoeda } from "../components/CampoMoeda";
 import { MovimentacoesDinheiro } from "../components/MovimentacoesDinheiro";
 import { UsoLimite } from "../components/UsoLimite";
@@ -7,7 +7,7 @@ import { Aviso, Botao, Bolinha, Painel } from "../components/ui";
 import { useMes } from "../contexts/Mes";
 import { api, type Lancamento, type Movimentacao } from "../lib/api";
 import { formatarBRL, formatarData } from "../lib/formato";
-import { nomeMes, nomeMesCurto, somarMeses } from "../lib/mes";
+import { nomeMesCurto } from "../lib/mes";
 import { useApi } from "../lib/useApi";
 
 export function LancamentoPage() {
@@ -16,7 +16,8 @@ export function LancamentoPage() {
   const [form, setForm] = useState<Lancamento | null>(null);
   const [msg, setMsg] = useState<{ tipo: "ok" | "erro" | "info"; texto: string } | null>(null);
   const [salvando, setSalvando] = useState(false);
-  const [contaAberta, setContaAberta] = useState<number | null>(null);
+  /** conta com o painel de entradas/saídas aberto: "fisico" ou id do banco */
+  const [contaAberta, setContaAberta] = useState<number | "fisico" | null>(null);
 
   // recarregar do servidor reinicia o formulário; atualização local do "original" (movimentação) não
   const atualizacaoLocal = useRef(false);
@@ -58,26 +59,6 @@ export function LancamentoPage() {
     const devido = form.faturas.reduce((s, f) => s + (f.paga ? 0 : (f.valor_centavos ?? 0)), 0);
     return { disponivel, devido, patrimonio: disponivel - devido };
   }, [form, ajustes]);
-
-  /** Dinheiro e saldos já passam de um mês para o outro sozinhos; só as faturas podem ser copiadas. */
-  async function copiarFaturasAnterior() {
-    if (!form) return;
-    const mesAnt = somarMeses(mes, -1);
-    try {
-      const ant = await api.lancamento(mesAnt);
-      if (!ant.faturas.some((f) => f.valor_centavos !== null)) {
-        setMsg({ tipo: "info", texto: `Não há faturas em ${nomeMes(mesAnt)} para copiar.` });
-        return;
-      }
-      setForm({
-        ...form,
-        faturas: form.faturas.map((f) => ({ ...f, valor_centavos: ant.faturas.find((a) => a.cartao_id === f.cartao_id)?.valor_centavos ?? f.valor_centavos, paga: false })),
-      });
-      setMsg({ tipo: "info", texto: `Faturas copiadas de ${nomeMes(mesAnt)}. Ajuste o que mudou e clique em Salvar.` });
-    } catch (e) {
-      setMsg({ tipo: "erro", texto: (e as Error).message });
-    }
-  }
 
   /** Movimentações já foram gravadas no servidor: aplica a variação no form e no "original" (sem perder outras edições). */
   function aplicarMovimentacao(bancoId: number | null, listaDaConta: Movimentacao[], variacao: number) {
@@ -132,93 +113,66 @@ export function LancamentoPage() {
 
       {form && (
         <>
-          {!form.temDados && !alterado && (form.fisico_herdado_de || form.saldos.some((s) => s.herdado_de)) && (
-            <Aviso>
-              {nomeMes(mes)} começa com o dinheiro e os saldos que você tinha no fim do mês anterior. Lance só o que entrou ou saiu.
-            </Aviso>
-          )}
           {msg && <Aviso tipo={msg.tipo}>{msg.texto}</Aviso>}
 
-          <div className="flex flex-wrap gap-2">
-            <Botao onClick={copiarFaturasAnterior}>⧉ Copiar faturas do mês anterior</Botao>
-            {alterado && (
+          {alterado && (
+            <div>
               <Botao variante="fantasma" onClick={() => setForm(original)}>
                 Desfazer alterações
               </Botao>
-            )}
-          </div>
+            </div>
+          )}
 
           <div className="grid gap-6 lg:grid-cols-2">
             <div className="space-y-6">
               <Painel titulo="Dinheiro físico">
-                <CampoMoeda aria-label="Dinheiro físico" valor={form.dinheiro_fisico} onChange={(v) => setForm({ ...form, dinheiro_fisico: v })} />
-                <p className={`mt-2 ${rotulo}`}>
-                  {form.fisico_herdado_de && `↳ Trazido de ${nomeMesCurto(form.fisico_herdado_de)}. `}
-                  As movimentações abaixo somam/subtraem deste valor na hora (e dos meses seguintes).
-                </p>
-                <MovimentacoesDinheiro
+                <LinhaConta
+                  nome="Em espécie"
+                  cor="#10B981"
+                  rotuloCampo="Dinheiro físico"
+                  valor={form.dinheiro_fisico}
+                  onChange={(v) => setForm({ ...form, dinheiro_fisico: v })}
+                  herdadoDe={form.fisico_herdado_de}
+                  aberta={contaAberta === "fisico"}
+                  onAlternar={() => setContaAberta(contaAberta === "fisico" ? null : "fisico")}
                   mes={mes}
                   bancoId={null}
                   movimentacoes={form.movimentacoes.filter((m) => m.banco_id === null)}
-                  onAlterado={(lista, v) => aplicarMovimentacao(null, lista, v)}
+                  onMovimentado={(lista, v) => aplicarMovimentacao(null, lista, v)}
                 />
               </Painel>
 
               <Painel titulo="Saldos bancários">
                 {form.saldos.length === 0 && <p className="text-sm text-slate-500">Nenhum banco ativo cadastrado.</p>}
-                <div className="space-y-4">
+                <div className="space-y-5">
                   {form.saldos.map((s, i) => (
-                    <div key={s.banco_id} className="grid grid-cols-[1fr_minmax(0,11rem)] items-center gap-3">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <Bolinha cor={s.cor} />
-                        <span className="truncate font-medium">{s.nome}</span>
-                        {!s.ativo && <span className={rotulo}>(inativo)</span>}
-                      </div>
-                      <CampoMoeda
-                        aria-label={`Saldo ${s.nome}`}
-                        permitirNegativo
-                        valor={s.valor_centavos}
-                        onChange={(v) => setForm({ ...form, saldos: form.saldos.map((x, j) => (j === i ? { ...x, valor_centavos: v } : x)) })}
-                      />
-                      <div className="col-span-2 -mt-1 flex flex-wrap items-center justify-between gap-2">
-                        <span className={rotulo}>{s.herdado_de ? `↳ Trazido de ${nomeMesCurto(s.herdado_de)}` : ""}</span>
-                        <button
-                          type="button"
-                          onClick={() => setContaAberta(contaAberta === s.banco_id ? null : s.banco_id)}
-                          className="text-xs font-medium text-emerald-700 hover:underline dark:text-emerald-400"
-                        >
-                          {contaAberta === s.banco_id ? "▾" : "▸"} ± Entradas/saídas
-                          {(() => {
-                            const n = form.movimentacoes.filter((m) => m.banco_id === s.banco_id).length;
-                            return n ? ` (${n})` : "";
-                          })()}
-                        </button>
-                      </div>
-                      {contaAberta === s.banco_id && (
-                        <div className="col-span-2 rounded-xl border border-slate-200 p-3 dark:border-slate-800">
-                          <MovimentacoesDinheiro
-                            mes={mes}
-                            bancoId={s.banco_id}
-                            titulo=""
-                            movimentacoes={form.movimentacoes.filter((m) => m.banco_id === s.banco_id)}
-                            onAlterado={(lista, v) => aplicarMovimentacao(s.banco_id, lista, v)}
-                          />
-                        </div>
-                      )}
+                    <LinhaConta
+                      key={s.banco_id}
+                      nome={s.nome}
+                      cor={s.cor}
+                      inativo={!s.ativo}
+                      rotuloCampo={`Saldo ${s.nome}`}
+                      permitirNegativo
+                      valor={s.valor_centavos}
+                      onChange={(v) => setForm({ ...form, saldos: form.saldos.map((x, j) => (j === i ? { ...x, valor_centavos: v } : x)) })}
+                      herdadoDe={s.herdado_de}
+                      aberta={contaAberta === s.banco_id}
+                      onAlternar={() => setContaAberta(contaAberta === s.banco_id ? null : s.banco_id)}
+                      mes={mes}
+                      bancoId={s.banco_id}
+                      movimentacoes={form.movimentacoes.filter((m) => m.banco_id === s.banco_id)}
+                      onMovimentado={(lista, v) => aplicarMovimentacao(s.banco_id, lista, v)}
+                    >
                       {ajustes.has(s.banco_id) && (
-                        <p className="col-span-2 -mt-1 text-right text-xs text-sky-700 dark:text-sky-300">
+                        <p className="text-right text-xs text-sky-700 dark:text-sky-300">
                           Ao salvar: {ajustes.get(s.banco_id)! > 0 ? "+" : "−"}
                           {formatarBRL(Math.abs(ajustes.get(s.banco_id)!))} ({ajustes.get(s.banco_id)! < 0 ? "fatura paga" : "fatura desmarcada"}) →{" "}
                           <b className="tabular-nums">{formatarBRL((s.valor_centavos ?? 0) + ajustes.get(s.banco_id)!)}</b>
                         </p>
                       )}
-                    </div>
+                    </LinhaConta>
                   ))}
                 </div>
-                <p className={`mt-3 ${rotulo}`}>
-                  Os saldos passam sozinhos para o mês seguinte: use “Entradas/saídas” para lançar o que mudou. Digite “-” para saldo negativo. Ao marcar uma fatura como paga e salvar, o valor é descontado do saldo do banco do
-                  cartão. Ao desmarcar, é devolvido. Informe aqui o saldo <b>antes</b> do pagamento.
-                </p>
               </Painel>
             </div>
 
@@ -296,6 +250,55 @@ export function LancamentoPage() {
           )}
         </>
       )}
+    </div>
+  );
+}
+
+interface LinhaContaProps {
+  nome: string;
+  cor: string;
+  inativo?: boolean;
+  rotuloCampo: string;
+  permitirNegativo?: boolean;
+  valor: number | null;
+  onChange: (v: number | null) => void;
+  herdadoDe: string | null;
+  aberta: boolean;
+  onAlternar: () => void;
+  mes: string;
+  bancoId: number | null;
+  movimentacoes: Movimentacao[];
+  onMovimentado: (lista: Movimentacao[], variacao: number) => void;
+  children?: ReactNode;
+}
+
+/** Uma conta (dinheiro físico ou banco): valor do mês + botão que abre as entradas/saídas. */
+function LinhaConta(p: LinhaContaProps) {
+  const n = p.movimentacoes.length;
+  return (
+    <div className="space-y-2">
+      <div className="grid grid-cols-[1fr_minmax(0,11rem)] items-center gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <Bolinha cor={p.cor} />
+            <span className="truncate font-medium">{p.nome}</span>
+            {p.inativo && <span className="text-xs text-slate-500 dark:text-slate-400">(inativo)</span>}
+          </div>
+          {p.herdadoDe && <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">↳ Trazido de {nomeMesCurto(p.herdadoDe)}</p>}
+        </div>
+        <CampoMoeda aria-label={p.rotuloCampo} permitirNegativo={p.permitirNegativo} valor={p.valor} onChange={p.onChange} />
+      </div>
+      <div className="flex justify-end">
+        <Botao type="button" onClick={p.onAlternar} aria-expanded={p.aberta} className="px-2.5 py-1.5 text-xs">
+          ± Entradas/saídas{n ? ` (${n})` : ""} <span aria-hidden>{p.aberta ? "▴" : "▾"}</span>
+        </Botao>
+      </div>
+      {p.aberta && (
+        <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-800">
+          <MovimentacoesDinheiro mes={p.mes} bancoId={p.bancoId} titulo="" movimentacoes={p.movimentacoes} onAlterado={p.onMovimentado} />
+        </div>
+      )}
+      {p.children}
     </div>
   );
 }
