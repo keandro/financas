@@ -106,6 +106,21 @@ export function DashboardPage() {
         {r && r.uso_limite.length > 0 && (
           <div className="mt-5 border-t border-slate-200 pt-4 dark:border-slate-800">
             <h3 className="mb-3 text-sm font-medium text-slate-600 dark:text-slate-400">Uso do limite</h3>
+            {(() => {
+              const usado = r.uso_limite.reduce((s, u) => s + u.usado_centavos, 0);
+              const limite = r.uso_limite.reduce((s, u) => s + u.limite_centavos, 0);
+              return (
+                <div className="mb-5 rounded-xl border border-slate-200 p-3 dark:border-slate-800">
+                  <div className="mb-1.5 flex flex-wrap items-baseline gap-x-2 text-sm">
+                    <span className="font-semibold">Todos os cartões</span>
+                    <span className="ml-auto font-medium tabular-nums">
+                      {formatarBRL(usado)} / {formatarBRL(limite)}
+                    </span>
+                  </div>
+                  <UsoLimite valor={usado} limite={limite} compacto />
+                </div>
+              );
+            })()}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {r.uso_limite.map((u) => (
                 <div key={u.cartao_id}>
