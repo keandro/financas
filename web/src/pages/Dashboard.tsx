@@ -35,12 +35,6 @@ export function DashboardPage() {
   const r = resumo.dados;
   const erro = resumo.erro ?? historico.erro ?? vencimentos.erro;
 
-  function recarregarTudo() {
-    resumo.recarregar();
-    historico.recarregar();
-    vencimentos.recarregar();
-  }
-
   const v = r?.variacao;
   const sobe = v ? v.valor >= 0 : false;
 
@@ -96,7 +90,7 @@ export function DashboardPage() {
           acao={<span className="text-xs text-slate-500 dark:text-slate-400">{nomeMesCurto(mes)} e {nomeMesCurto(proximoMes)}</span>}
           className="lg:col-span-2"
         >
-          {vencimentos.dados && <ProximosVencimentos faturas={doPeriodo} onAlterado={recarregarTudo} />}
+          {vencimentos.dados && <ProximosVencimentos faturas={doPeriodo} />}
           {anterioresEmAberto.length > 0 && (
             <p className="mt-3 text-xs text-red-600 dark:text-red-400">
               ⚠ Há {anterioresEmAberto.length} {anterioresEmAberto.length === 1 ? "fatura" : "faturas"} em aberto de meses anteriores (

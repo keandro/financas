@@ -29,12 +29,28 @@ export function LancamentoPage() {
     return () => window.removeEventListener("beforeunload", h);
   }, [alterado]);
 
+  // Ajustes que o servidor fará nos saldos ao salvar (fatura marcada/desmarcada como paga).
+  // Mesma regra do servidor: desconto = valor se paga; ajuste = desconto antigo − desconto novo.
+  const ajustes = useMemo(() => {
+    const m = new Map<number, number>();
+    if (!form || !original) return m;
+    for (const f of form.faturas) {
+      const antes = original.faturas.find((o) => o.cartao_id === f.cartao_id);
+      const descontoAntes = antes?.paga ? (antes.valor_centavos ?? 0) : 0;
+      const descontoDepois = f.paga ? (f.valor_centavos ?? 0) : 0;
+      const ajuste = descontoAntes - descontoDepois;
+      if (ajuste !== 0) m.set(f.banco_id, (m.get(f.banco_id) ?? 0) + ajuste);
+    }
+    return m;
+  }, [form, original]);
+
   const totais = useMemo(() => {
     if (!form) return null;
-    const disponivel = (form.dinheiro_fisico ?? 0) + form.saldos.reduce((s, b) => s + (b.valor_centavos ?? 0), 0);
+    const somaAjustes = [...ajustes.values()].reduce((s, v) => s + v, 0);
+    const disponivel = (form.dinheiro_fisico ?? 0) + form.saldos.reduce((s, b) => s + (b.valor_centavos ?? 0), 0) + somaAjustes;
     const devido = form.faturas.reduce((s, f) => s + (f.paga ? 0 : (f.valor_centavos ?? 0)), 0);
     return { disponivel, devido, patrimonio: disponivel - devido };
-  }, [form]);
+  }, [form, ajustes]);
 
   async function copiarAnterior() {
     if (!form) return;
@@ -61,13 +77,14 @@ export function LancamentoPage() {
     if (!form) return;
     setSalvando(true);
     try {
-      await api.salvarLancamento(mes, {
+      const r = await api.salvarLancamento(mes, {
         dinheiro_fisico: form.dinheiro_fisico,
         saldos: form.saldos.map(({ banco_id, valor_centavos }) => ({ banco_id, valor_centavos })),
         faturas: form.faturas.map(({ cartao_id, valor_centavos, paga }) => ({ cartao_id, valor_centavos, paga })),
       });
       recarregar();
-      setMsg({ tipo: "ok", texto: "Lançamento salvo!" });
+      const detalhes = r.ajustes.map((a) => `${a.nome} ${a.ajuste_centavos > 0 ? "+" : "−"}${formatarBRL(Math.abs(a.ajuste_centavos))}`);
+      setMsg({ tipo: "ok", texto: detalhes.length ? `Lançamento salvo! Saldos ajustados: ${detalhes.join(" · ")}` : "Lançamento salvo!" });
     } catch (e) {
       setMsg({ tipo: "erro", texto: (e as Error).message });
     } finally {
@@ -127,10 +144,20 @@ export function LancamentoPage() {
                         valor={s.valor_centavos}
                         onChange={(v) => setForm({ ...form, saldos: form.saldos.map((x, j) => (j === i ? { ...x, valor_centavos: v } : x)) })}
                       />
+                      {ajustes.has(s.banco_id) && (
+                        <p className="col-span-2 -mt-1 text-right text-xs text-sky-700 dark:text-sky-300">
+                          Ao salvar: {ajustes.get(s.banco_id)! > 0 ? "+" : "−"}
+                          {formatarBRL(Math.abs(ajustes.get(s.banco_id)!))} ({ajustes.get(s.banco_id)! < 0 ? "fatura paga" : "fatura desmarcada"}) →{" "}
+                          <b className="tabular-nums">{formatarBRL((s.valor_centavos ?? 0) + ajustes.get(s.banco_id)!)}</b>
+                        </p>
+                      )}
                     </div>
                   ))}
                 </div>
-                <p className={`mt-3 ${rotulo}`}>Digite “-” para saldo negativo (cheque especial).</p>
+                <p className={`mt-3 ${rotulo}`}>
+                  Digite “-” para saldo negativo (cheque especial). Ao marcar uma fatura como paga e salvar, o valor é descontado do saldo do banco do
+                  cartão. Ao desmarcar, é devolvido. Informe aqui o saldo <b>antes</b> do pagamento.
+                </p>
               </Painel>
             </div>
 
@@ -166,6 +193,15 @@ export function LancamentoPage() {
                         onChange={(e) => setForm({ ...form, faturas: form.faturas.map((x, j) => (j === i ? { ...x, paga: e.target.checked } : x)) })}
                       />
                       Paga
+                      {(() => {
+                        const antes = original?.faturas.find((o) => o.cartao_id === f.cartao_id);
+                        if (!antes || antes.paga === f.paga || !f.valor_centavos) return null;
+                        return (
+                          <span className="text-xs text-sky-700 dark:text-sky-300">
+                            ({f.paga ? "desconta" : "devolve"} {formatarBRL(f.valor_centavos)} {f.paga ? "do" : "ao"} saldo do {f.banco_nome} ao salvar)
+                          </span>
+                        );
+                      })()}
                     </label>
                   </div>
                 ))}

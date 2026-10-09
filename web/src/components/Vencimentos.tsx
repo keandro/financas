@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { api, type FaturaDetalhe } from "../lib/api";
+import type { FaturaDetalhe } from "../lib/api";
 import { diasAte, formatarBRL, formatarData } from "../lib/formato";
 import { Bolinha } from "./ui";
 
@@ -26,30 +25,16 @@ function situacao(dias: number) {
   };
 }
 
-/** Faturas não pagas de todos os meses, ordenadas por vencimento. */
-export function ProximosVencimentos({ faturas, onAlterado }: { faturas: FaturaDetalhe[]; onAlterado: () => void }) {
-  const [ocupado, setOcupado] = useState<string | null>(null);
-
+/** Faturas não pagas, ordenadas por vencimento. (Marcar como paga só na tela de Lançamento.) */
+export function ProximosVencimentos({ faturas }: { faturas: FaturaDetalhe[] }) {
   if (faturas.length === 0) return <p className="py-6 text-center text-sm text-slate-500 dark:text-slate-400">🎉 Nenhuma fatura em aberto neste período.</p>;
-
-  async function pagar(f: FaturaDetalhe) {
-    const chave = `${f.mes}-${f.cartao_id}`;
-    setOcupado(chave);
-    try {
-      await api.marcarPaga(f.mes, f.cartao_id, true);
-      onAlterado();
-    } finally {
-      setOcupado(null);
-    }
-  }
 
   return (
     <ul className="space-y-2">
       {faturas.map((f) => {
         const s = situacao(diasAte(f.vencimento));
-        const chave = `${f.mes}-${f.cartao_id}`;
         return (
-          <li key={chave} className={`flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border p-3 ${s.classe}`}>
+          <li key={`${f.mes}-${f.cartao_id}`} className={`flex items-center gap-3 rounded-xl border p-3 ${s.classe}`}>
             <Bolinha cor={f.cor} />
             <div className="min-w-0 flex-1">
               <p className="truncate font-medium">{f.banco_nome}</p>
@@ -58,13 +43,6 @@ export function ProximosVencimentos({ faturas, onAlterado }: { faturas: FaturaDe
               </p>
             </div>
             <span className="font-semibold tabular-nums">{formatarBRL(f.valor_centavos)}</span>
-            <button
-              onClick={() => pagar(f)}
-              disabled={ocupado === chave}
-              className="rounded-lg border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-white disabled:opacity-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-            >
-              ✓ Paga
-            </button>
           </li>
         );
       })}

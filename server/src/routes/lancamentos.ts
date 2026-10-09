@@ -64,7 +64,7 @@ lancamentosRouter.put("/:mes", (req, res) => {
     exigir(f.valor_centavos === null || (ehCentavos(f.valor_centavos) && f.valor_centavos >= 0), "Fatura inválida");
   }
 
-  db.transaction(() => {
+  const ajustes = db.transaction(() => {
     if (dinheiro_fisico === null) db.prepare("DELETE FROM dinheiro_fisico WHERE mes = ?").run(mes);
     else
       db.prepare(
@@ -80,27 +80,49 @@ lancamentosRouter.put("/:mes", (req, res) => {
       else upSaldo.run(mes, s.banco_id, s.valor_centavos);
     }
 
+    // Pagamento de fatura mexe no saldo do banco do cartão (mesmo mês):
+    // "desconto" = valor da fatura se paga, senão 0. O saldo recebe (desconto antigo − desconto novo).
+    // Assim: marcar paga → debita; desmarcar → devolve; mudar o valor de uma fatura já paga → ajusta a diferença.
+    const qFaturaAtual = db.prepare(
+      `SELECT f.valor_centavos, f.paga FROM faturas f WHERE f.mes = ? AND f.cartao_id = ?`,
+    );
+    const qBancoDoCartao = db.prepare("SELECT banco_id FROM cartoes WHERE id = ?");
+    const ajustePorBanco = new Map<number, number>();
+
     const upFatura = db.prepare(
       `INSERT INTO faturas (mes, cartao_id, valor_centavos, paga) VALUES (?, ?, ?, ?)
        ON CONFLICT (mes, cartao_id) DO UPDATE SET valor_centavos = excluded.valor_centavos, paga = excluded.paga`,
     );
     const delFatura = db.prepare("DELETE FROM faturas WHERE mes = ? AND cartao_id = ?");
     for (const f of faturas) {
+      const antes = qFaturaAtual.get(mes, f.cartao_id) as { valor_centavos: number; paga: number } | undefined;
+      const descontoAntes = antes?.paga ? antes.valor_centavos : 0;
+      const descontoDepois = f.paga && f.valor_centavos !== null ? f.valor_centavos : 0;
+      const ajuste = descontoAntes - descontoDepois;
+      if (ajuste !== 0) {
+        const banco = qBancoDoCartao.get(f.cartao_id) as { banco_id: number } | undefined;
+        exigir(banco, "Cartão não encontrado");
+        ajustePorBanco.set(banco.banco_id, (ajustePorBanco.get(banco.banco_id) ?? 0) + ajuste);
+      }
+
       if (f.valor_centavos === null) delFatura.run(mes, f.cartao_id);
       else upFatura.run(mes, f.cartao_id, f.valor_centavos, f.paga ? 1 : 0);
     }
+
+    // aplica os ajustes por cima do saldo informado no formulário (sem saldo no mês, parte de 0)
+    const somarSaldo = db.prepare(
+      `INSERT INTO saldos (mes, banco_id, valor_centavos) VALUES (?, ?, ?)
+       ON CONFLICT (mes, banco_id) DO UPDATE SET valor_centavos = valor_centavos + excluded.valor_centavos`,
+    );
+    const qNome = db.prepare("SELECT nome FROM bancos WHERE id = ?");
+    const lista: { banco_id: number; nome: string; ajuste_centavos: number }[] = [];
+    for (const [banco_id, ajuste] of ajustePorBanco) {
+      if (ajuste === 0) continue;
+      somarSaldo.run(mes, banco_id, ajuste);
+      lista.push({ banco_id, nome: (qNome.get(banco_id) as { nome: string }).nome, ajuste_centavos: ajuste });
+    }
+    return lista;
   })();
 
-  res.json({ ok: true });
-});
-
-/** Marca/desmarca uma fatura como paga (usado na lista de vencimentos). */
-lancamentosRouter.patch("/:mes/faturas/:cartaoId", (req, res) => {
-  const { mes } = req.params;
-  exigir(mesValido(mes), "Mês inválido");
-  const r = db
-    .prepare("UPDATE faturas SET paga = ? WHERE mes = ? AND cartao_id = ?")
-    .run(req.body?.paga ? 1 : 0, mes, Number(req.params.cartaoId));
-  exigir(r.changes === 1, "Fatura não encontrada");
-  res.json({ ok: true });
+  res.json({ ok: true, ajustes });
 });

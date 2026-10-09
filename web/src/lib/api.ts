@@ -114,9 +114,7 @@ export const api = {
       saldos: { banco_id: number; valor_centavos: number | null }[];
       faturas: { cartao_id: number; valor_centavos: number | null; paga: boolean }[];
     },
-  ) => req<{ ok: true }>("PUT", `/lancamentos/${mes}`, dados),
-  marcarPaga: (mes: string, cartaoId: number, paga: boolean) =>
-    req<{ ok: true }>("PATCH", `/lancamentos/${mes}/faturas/${cartaoId}`, { paga }),
+  ) => req<{ ok: true; ajustes: { banco_id: number; nome: string; ajuste_centavos: number }[] }>("PUT", `/lancamentos/${mes}`, dados),
 
   meses: () => req<string[]>("GET", "/meses"),
   resumo: (mes: string) => req<Resumo>("GET", `/resumo/${mes}`),
