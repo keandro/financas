@@ -166,7 +166,6 @@ export function GraficoFaturas({ faturas }: { faturas: FaturaDetalhe[] }) {
           </Bar>
         </BarChart>
       </ResponsiveContainer>
-      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">✓ = fatura paga (barra esmaecida)</p>
     </div>
   );
 }

@@ -12,7 +12,7 @@ import { useApi } from "../lib/useApi";
 
 function CardResumo({ titulo, valor, detalhe, destaque }: { titulo: string; valor: string; detalhe?: React.ReactNode; destaque?: string }) {
   return (
-    <Painel className="flex flex-col justify-between">
+    <Painel>
       <p className="text-sm text-slate-500 dark:text-slate-400">{titulo}</p>
       <p className={`mt-2 text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl ${destaque ?? ""}`}>{valor}</p>
       {detalhe && <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{detalhe}</div>}
@@ -65,18 +65,17 @@ export function DashboardPage() {
             valor={formatarBRL(r.disponivel)}
             detalhe={`Físico ${formatarBRL(r.dinheiro_fisico)} · Bancos ${formatarBRL(r.bancos)}`}
           />
-          <CardResumo titulo="Total devido" valor={formatarBRL(r.devido)} detalhe="Faturas não pagas do mês" destaque={r.devido > 0 ? "text-red-600 dark:text-red-400" : ""} />
+          <CardResumo titulo="Total devido" valor={formatarBRL(r.devido)} destaque={r.devido > 0 ? "text-red-600 dark:text-red-400" : ""} />
           <CardResumo
             titulo="Patrimônio líquido"
             valor={formatarBRL(r.patrimonio)}
-            detalhe="Disponível − devido"
             destaque={r.patrimonio < 0 ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}
           />
           <CardResumo
             titulo="Variação vs mês anterior"
             valor={v ? `${sobe ? "▲ +" : "▼ −"}${formatarBRL(Math.abs(v.valor))}` : "—"}
             destaque={v ? (sobe ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400") : "text-slate-400"}
-            detalhe={v ? (v.pct !== null ? `${formatarPct(v.pct)} no patrimônio líquido` : "Mês anterior com patrimônio zero") : "Sem dados no mês anterior"}
+            detalhe={v?.pct != null ? formatarPct(v.pct) : undefined}
           />
         </div>
       )}
@@ -104,24 +103,22 @@ export function DashboardPage() {
 
       <Painel titulo="Fatura por cartão no mês">
         {r && <GraficoFaturas faturas={r.faturas} />}
-        {r && r.faturas.some((f) => f.limite_centavos !== null) && (
+        {r && r.uso_limite.length > 0 && (
           <div className="mt-5 border-t border-slate-200 pt-4 dark:border-slate-800">
             <h3 className="mb-3 text-sm font-medium text-slate-600 dark:text-slate-400">Uso do limite</h3>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {r.faturas
-                .filter((f) => f.limite_centavos !== null)
-                .map((f) => (
-                  <div key={f.cartao_id}>
-                    <div className="mb-1.5 flex items-center gap-2 text-sm">
-                      <Bolinha cor={f.cor} />
-                      <span className="font-medium">{f.banco_nome}</span>
-                      <span className="ml-auto text-xs text-slate-500 tabular-nums dark:text-slate-400">
-                        {formatarBRL(f.valor_centavos)} / {formatarBRL(f.limite_centavos!)}
-                      </span>
-                    </div>
-                    <UsoLimite valor={f.valor_centavos} limite={f.limite_centavos!} compacto />
+              {r.uso_limite.map((u) => (
+                <div key={u.cartao_id}>
+                  <div className="mb-1.5 flex items-center gap-2 text-sm">
+                    <Bolinha cor={u.cor} />
+                    <span className="font-medium">{u.banco_nome}</span>
+                    <span className="ml-auto text-xs text-slate-500 tabular-nums dark:text-slate-400">
+                      {formatarBRL(u.usado_centavos)} / {formatarBRL(u.limite_centavos)}
+                    </span>
                   </div>
-                ))}
+                  <UsoLimite valor={u.usado_centavos} limite={u.limite_centavos} compacto />
+                </div>
+              ))}
             </div>
           </div>
         )}

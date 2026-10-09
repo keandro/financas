@@ -101,6 +101,7 @@ export interface Resumo extends Totais {
   variacao: { valor: number; pct: number | null } | null;
   distribuicao: { nome: string; cor: string; valor: number }[];
   faturas: FaturaDetalhe[];
+  uso_limite: { cartao_id: number; banco_nome: string; cor: string; limite_centavos: number; usado_centavos: number }[];
 }
 
 async function req<T>(metodo: string, url: string, corpo?: unknown): Promise<T> {

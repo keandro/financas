@@ -39,7 +39,21 @@ resumoRouter.get("/resumo/:mes", (req, res) => {
     (d) => d.valor > 0,
   );
 
-  res.json({ ...atual, anterior, variacao, distribuicao, faturas: faturasDoMes(mes) });
+  // limite ocupado = faturas não pagas deste mês em diante (inclui parcelas futuras já lançadas)
+  const uso_limite = db
+    .prepare(
+      `SELECT c.id AS cartao_id, b.nome AS banco_nome, b.cor, c.limite_centavos,
+              COALESCE(SUM(CASE WHEN f.paga = 0 THEN f.valor_centavos END), 0) AS usado_centavos
+       FROM cartoes c
+       JOIN bancos b ON b.id = c.banco_id
+       LEFT JOIN faturas f ON f.cartao_id = c.id AND f.mes >= ?
+       WHERE c.limite_centavos IS NOT NULL AND c.ativo = 1 AND b.ativo = 1
+       GROUP BY c.id
+       ORDER BY b.nome COLLATE NOCASE`,
+    )
+    .all(mes);
+
+  res.json({ ...atual, anterior, variacao, distribuicao, faturas: faturasDoMes(mes), uso_limite });
 });
 
 /** Evolução dos últimos N meses (padrão 12) terminando em :mes. */
