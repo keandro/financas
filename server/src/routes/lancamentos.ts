@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "../db/index.js";
-import { ehCentavos, exigir } from "../lib/http.js";
+import { HttpError, ehCentavos, exigir } from "../lib/http.js";
 import { dataVencimento, mesValido } from "../lib/mes.js";
 
 export const lancamentosRouter = Router();
@@ -44,7 +44,11 @@ lancamentosRouter.get("/:mes", (req, res) => {
 
   const temDados = !!fisico || saldos.some((s) => s.valor_centavos != null) || faturas.some((f) => f.valor_centavos != null);
 
-  res.json({ mes, temDados, dinheiro_fisico: fisico?.v ?? null, saldos, faturas });
+  const movimentacoes = db
+    .prepare("SELECT id, data, descricao, valor_centavos FROM movimentacoes_dinheiro WHERE mes = ? ORDER BY data, id")
+    .all(mes);
+
+  res.json({ mes, temDados, dinheiro_fisico: fisico?.v ?? null, saldos, faturas, movimentacoes });
 });
 
 /** Salva o mês inteiro de uma vez (upsert). Valor `null` remove o lançamento. */
@@ -125,4 +129,55 @@ lancamentosRouter.put("/:mes", (req, res) => {
   })();
 
   res.json({ ok: true, ajustes });
+});
+
+/**
+ * Movimentações do dinheiro físico: cada uma soma (entrada) ou subtrai (saída) do
+ * dinheiro físico do mês na hora. Remover a movimentação desfaz o efeito.
+ */
+const somarFisico = db.prepare(
+  `INSERT INTO dinheiro_fisico (mes, valor_centavos) VALUES (?, ?)
+   ON CONFLICT (mes) DO UPDATE SET valor_centavos = valor_centavos + excluded.valor_centavos`,
+);
+const lerFisico = (mes: string) =>
+  (db.prepare("SELECT valor_centavos AS v FROM dinheiro_fisico WHERE mes = ?").get(mes) as { v: number } | undefined)?.v ?? null;
+
+lancamentosRouter.post("/:mes/movimentacoes", (req, res) => {
+  const { mes } = req.params;
+  exigir(mesValido(mes), "Mês inválido (use YYYY-MM)");
+  const { data, descricao = "", valor_centavos } = req.body ?? {};
+  exigir(typeof data === "string" && /^\d{4}-\d{2}-\d{2}$/.test(data) && data.startsWith(`${mes}-`), "A data deve estar dentro do mês");
+  exigir(ehCentavos(valor_centavos) && valor_centavos !== 0, "Informe um valor diferente de zero");
+  exigir(typeof descricao === "string" && descricao.length <= 200, "Descrição muito longa");
+
+  const id = db.transaction(() => {
+    const novoId = Number(
+      db
+        .prepare("INSERT INTO movimentacoes_dinheiro (mes, data, descricao, valor_centavos) VALUES (?, ?, ?, ?)")
+        .run(mes, data, descricao.trim(), valor_centavos).lastInsertRowid,
+    );
+    somarFisico.run(mes, valor_centavos);
+    return novoId;
+  })();
+
+  res.status(201).json({
+    movimentacao: { id, data, descricao: descricao.trim(), valor_centavos },
+    dinheiro_fisico: lerFisico(mes),
+  });
+});
+
+lancamentosRouter.delete("/:mes/movimentacoes/:id", (req, res) => {
+  const { mes } = req.params;
+  exigir(mesValido(mes), "Mês inválido (use YYYY-MM)");
+  const mov = db
+    .prepare("SELECT valor_centavos FROM movimentacoes_dinheiro WHERE id = ? AND mes = ?")
+    .get(Number(req.params.id), mes) as { valor_centavos: number } | undefined;
+  if (!mov) throw new HttpError(404, "Movimentação não encontrada");
+
+  db.transaction(() => {
+    db.prepare("DELETE FROM movimentacoes_dinheiro WHERE id = ?").run(Number(req.params.id));
+    somarFisico.run(mes, -mov.valor_centavos);
+  })();
+
+  res.json({ ok: true, dinheiro_fisico: lerFisico(mes) });
 });

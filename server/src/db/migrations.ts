@@ -46,4 +46,17 @@ export const migrations: string[] = [
   `
   ALTER TABLE cartoes ADD COLUMN limite_centavos INTEGER CHECK (limite_centavos >= 0);
   `,
+
+  // 3 — movimentações manuais do dinheiro físico (entradas > 0, saídas < 0)
+  `
+  CREATE TABLE movimentacoes_dinheiro (
+    id             INTEGER PRIMARY KEY,
+    mes            TEXT    NOT NULL,
+    data           TEXT    NOT NULL,
+    descricao      TEXT    NOT NULL DEFAULT '',
+    valor_centavos INTEGER NOT NULL CHECK (valor_centavos <> 0),
+    criado_em      TEXT    NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX idx_movimentacoes_mes ON movimentacoes_dinheiro (mes);
+  `,
 ];

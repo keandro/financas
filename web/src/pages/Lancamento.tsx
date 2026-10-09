@@ -1,22 +1,28 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CampoMoeda } from "../components/CampoMoeda";
+import { MovimentacoesDinheiro } from "../components/MovimentacoesDinheiro";
 import { UsoLimite } from "../components/UsoLimite";
 import { SeletorMes } from "../components/SeletorMes";
 import { Aviso, Botao, Bolinha, Painel } from "../components/ui";
 import { useMes } from "../contexts/Mes";
-import { api, type Lancamento } from "../lib/api";
+import { api, type Lancamento, type Movimentacao } from "../lib/api";
 import { formatarBRL, formatarData } from "../lib/formato";
 import { nomeMes, somarMeses } from "../lib/mes";
 import { useApi } from "../lib/useApi";
 
 export function LancamentoPage() {
   const { mes } = useMes();
-  const { dados: original, erro, carregando, recarregar } = useApi(() => api.lancamento(mes), [mes]);
+  const { dados: original, setDados: setOriginal, erro, carregando, recarregar } = useApi(() => api.lancamento(mes), [mes]);
   const [form, setForm] = useState<Lancamento | null>(null);
   const [msg, setMsg] = useState<{ tipo: "ok" | "erro" | "info"; texto: string } | null>(null);
   const [salvando, setSalvando] = useState(false);
 
-  useEffect(() => setForm(original), [original]);
+  // recarregar do servidor reinicia o formulário; atualização local do "original" (movimentação) não
+  const atualizacaoLocal = useRef(false);
+  useEffect(() => {
+    if (atualizacaoLocal.current) atualizacaoLocal.current = false;
+    else setForm(original);
+  }, [original]);
   useEffect(() => setMsg(null), [mes]);
 
   const alterado = useMemo(() => JSON.stringify(form) !== JSON.stringify(original), [form, original]);
@@ -63,7 +69,11 @@ export function LancamentoPage() {
       }
       setForm({
         ...form,
-        dinheiro_fisico: ant.dinheiro_fisico,
+        // o físico copiado continua somando as movimentações já feitas neste mês
+        dinheiro_fisico:
+          ant.dinheiro_fisico === null && form.movimentacoes.length === 0
+            ? null
+            : (ant.dinheiro_fisico ?? 0) + form.movimentacoes.reduce((s, m) => s + m.valor_centavos, 0),
         saldos: form.saldos.map((s) => ({ ...s, valor_centavos: ant.saldos.find((a) => a.banco_id === s.banco_id)?.valor_centavos ?? s.valor_centavos })),
         faturas: form.faturas.map((f) => ({ ...f, valor_centavos: ant.faturas.find((a) => a.cartao_id === f.cartao_id)?.valor_centavos ?? f.valor_centavos, paga: false })),
       });
@@ -71,6 +81,15 @@ export function LancamentoPage() {
     } catch (e) {
       setMsg({ tipo: "erro", texto: (e as Error).message });
     }
+  }
+
+  /** Movimentações já foram gravadas no servidor: aplica a variação no form e no "original" (sem perder outras edições). */
+  function aplicarMovimentacao(lista: Movimentacao[], variacao: number) {
+    const atualizar = (l: Lancamento | null) =>
+      l && { ...l, temDados: true, movimentacoes: lista, dinheiro_fisico: (l.dinheiro_fisico ?? 0) + variacao };
+    atualizacaoLocal.current = true;
+    setOriginal(atualizar);
+    setForm(atualizar);
   }
 
   async function salvar() {
@@ -126,6 +145,8 @@ export function LancamentoPage() {
             <div className="space-y-6">
               <Painel titulo="Dinheiro físico">
                 <CampoMoeda aria-label="Dinheiro físico" valor={form.dinheiro_fisico} onChange={(v) => setForm({ ...form, dinheiro_fisico: v })} />
+                <p className={`mt-2 ${rotulo}`}>Total em espécie. As movimentações abaixo já somam/subtraem deste valor ao serem adicionadas.</p>
+                <MovimentacoesDinheiro mes={mes} movimentacoes={form.movimentacoes} onAlterado={aplicarMovimentacao} />
               </Painel>
 
               <Painel titulo="Saldos bancários">

@@ -21,5 +21,5 @@ export function useApi<T>(fn: () => Promise<T>, deps: unknown[]) {
   }, [...deps, versao]);
 
   const recarregar = useCallback(() => setVersao((v) => v + 1), []);
-  return { dados, erro, carregando, recarregar };
+  return { dados, setDados, erro, carregando, recarregar };
 }

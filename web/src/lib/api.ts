@@ -52,12 +52,21 @@ export interface FaturaLancamento {
   paga: boolean;
 }
 
+export interface Movimentacao {
+  id: number;
+  data: string;
+  descricao: string;
+  /** entrada > 0, saída < 0 */
+  valor_centavos: number;
+}
+
 export interface Lancamento {
   mes: string;
   temDados: boolean;
   dinheiro_fisico: number | null;
   saldos: SaldoLancamento[];
   faturas: FaturaLancamento[];
+  movimentacoes: Movimentacao[];
 }
 
 export interface Totais {
@@ -115,6 +124,11 @@ export const api = {
       faturas: { cartao_id: number; valor_centavos: number | null; paga: boolean }[];
     },
   ) => req<{ ok: true; ajustes: { banco_id: number; nome: string; ajuste_centavos: number }[] }>("PUT", `/lancamentos/${mes}`, dados),
+
+  adicionarMovimentacao: (mes: string, m: Omit<Movimentacao, "id">) =>
+    req<{ movimentacao: Movimentacao; dinheiro_fisico: number | null }>("POST", `/lancamentos/${mes}/movimentacoes`, m),
+  removerMovimentacao: (mes: string, id: number) =>
+    req<{ ok: true; dinheiro_fisico: number | null }>("DELETE", `/lancamentos/${mes}/movimentacoes/${id}`),
 
   meses: () => req<string[]>("GET", "/meses"),
   resumo: (mes: string) => req<Resumo>("GET", `/resumo/${mes}`),
