@@ -7,7 +7,7 @@ import { ProximosVencimentos } from "../components/Vencimentos";
 import { useMes } from "../contexts/Mes";
 import { api } from "../lib/api";
 import { formatarBRL, formatarPct } from "../lib/formato";
-import { nomeMes } from "../lib/mes";
+import { nomeMes, nomeMesCurto, somarMeses } from "../lib/mes";
 import { useApi } from "../lib/useApi";
 
 function CardResumo({ titulo, valor, detalhe, destaque }: { titulo: string; valor: string; detalhe?: React.ReactNode; destaque?: string }) {
@@ -25,6 +25,12 @@ export function DashboardPage() {
   const resumo = useApi(() => api.resumo(mes), [mes]);
   const historico = useApi(() => api.historico(mes, 12), [mes]);
   const vencimentos = useApi(api.vencimentos, []);
+
+  // próximos vencimentos: só o mês selecionado e o seguinte
+  const proximoMes = somarMeses(mes, 1);
+  const todasAbertas = vencimentos.dados ?? [];
+  const doPeriodo = todasAbertas.filter((f) => f.mes === mes || f.mes === proximoMes);
+  const anterioresEmAberto = todasAbertas.filter((f) => f.mes < mes);
 
   const r = resumo.dados;
   const erro = resumo.erro ?? historico.erro ?? vencimentos.erro;
@@ -85,8 +91,18 @@ export function DashboardPage() {
         <Painel titulo="Distribuição do dinheiro" className="lg:col-span-3">
           {r && <GraficoDistribuicao dados={r.distribuicao} />}
         </Painel>
-        <Painel titulo="Próximos vencimentos" className="lg:col-span-2">
-          {vencimentos.dados && <ProximosVencimentos faturas={vencimentos.dados} onAlterado={recarregarTudo} />}
+        <Painel
+          titulo="Próximos vencimentos"
+          acao={<span className="text-xs text-slate-500 dark:text-slate-400">{nomeMesCurto(mes)} e {nomeMesCurto(proximoMes)}</span>}
+          className="lg:col-span-2"
+        >
+          {vencimentos.dados && <ProximosVencimentos faturas={doPeriodo} onAlterado={recarregarTudo} />}
+          {anterioresEmAberto.length > 0 && (
+            <p className="mt-3 text-xs text-red-600 dark:text-red-400">
+              ⚠ Há {anterioresEmAberto.length} {anterioresEmAberto.length === 1 ? "fatura" : "faturas"} em aberto de meses anteriores (
+              {formatarBRL(anterioresEmAberto.reduce((s, f) => s + f.valor_centavos, 0))}).
+            </p>
+          )}
         </Painel>
       </div>
 

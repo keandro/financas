@@ -30,7 +30,7 @@ function situacao(dias: number) {
 export function ProximosVencimentos({ faturas, onAlterado }: { faturas: FaturaDetalhe[]; onAlterado: () => void }) {
   const [ocupado, setOcupado] = useState<string | null>(null);
 
-  if (faturas.length === 0) return <p className="py-6 text-center text-sm text-slate-500 dark:text-slate-400">🎉 Nenhuma fatura em aberto.</p>;
+  if (faturas.length === 0) return <p className="py-6 text-center text-sm text-slate-500 dark:text-slate-400">🎉 Nenhuma fatura em aberto neste período.</p>;
 
   async function pagar(f: FaturaDetalhe) {
     const chave = `${f.mes}-${f.cartao_id}`;
