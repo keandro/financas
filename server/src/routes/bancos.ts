@@ -89,7 +89,7 @@ bancosRouter.post("/", (req, res) => {
   const tipo = req.body.tipo ?? "banco";
   exigir(tipo === "banco" || tipo === "outro", "Tipo inválido");
   const cartao = lerCartao(req.body.cartao);
-  exigir(!(tipo === "outro" && cartao), "Outros dinheiros não têm cartão");
+  exigir(!(tipo === "outro" && cartao), "Poupança não tem cartão");
   const moeda = req.body.moeda ?? "BRL";
   exigir(["BRL", "USD", "EUR"].includes(moeda), "Moeda inválida");
   exigir(tipo === "outro" || moeda === "BRL", "Bancos são sempre em reais");
@@ -117,7 +117,7 @@ bancosRouter.put("/:id", (req, res) => {
   exigir(typeof nome === "string" && nome.trim(), "Nome é obrigatório");
   exigir(ehCor(cor), "Cor inválida (use #RRGGBB)");
   const cartao = lerCartao(req.body?.cartao);
-  exigir(!(atual.tipo === "outro" && cartao), "Outros dinheiros não têm cartão");
+  exigir(!(atual.tipo === "outro" && cartao), "Poupança não tem cartão");
 
   db.transaction(() => {
     db.prepare("UPDATE bancos SET nome = ?, cor = ?, ativo = ?, moeda = ? WHERE id = ?").run(

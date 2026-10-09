@@ -13,7 +13,7 @@ export interface Banco {
   nome: string;
   cor: string;
   ativo: boolean;
-  /** "outro" = outros dinheiros (aplicações etc.), sem cartão */
+  /** "outro" = poupança (aplicações etc.), sem cartão */
   tipo: TipoConta;
   moeda: Moeda;
   criado_em: string;
@@ -98,7 +98,7 @@ export interface Totais {
   disponivel: number;
   devido: number;
   patrimonio: number;
-  /** outros dinheiros em reais */
+  /** poupança em reais */
   poupanca: number;
   patrimonio_total: number;
 }

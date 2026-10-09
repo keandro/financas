@@ -170,7 +170,7 @@ export function DashboardPage() {
         <Aviso>
           Nenhum valor em poupança.{" "}
           <Link to="/bancos" className="font-medium underline">
-            Cadastrar em Outros dinheiros
+            Cadastrar poupança
           </Link>
         </Aviso>
       ) : (

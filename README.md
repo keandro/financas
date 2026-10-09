@@ -94,7 +94,7 @@ web/src/
 **Desativar × excluir:** desativar esconde o banco dos lançamentos novos e mantém o histórico.
 Excluir apaga tudo (os totais de meses passados mudam). Faça um `npm run backup` antes, por garantia.
 
-**Outros dinheiros:** aplicações e outras reservas (Tesouro, CDB, poupança...), cadastrados em "Bancos e cartões".
+**Poupança:** aplicações e outras reservas (Tesouro, CDB, dinheiro em outras moedas...), cadastradas em "Bancos e cartões".
 Funcionam como um banco sem cartão: saldo herdado mês a mês, entradas/saídas, e entram no total disponível.
 Cada um pode ser em **Real, Dólar ou Euro**. Valores ficam na moeda original; para os totais, são convertidos
 pela cotação do mês (informada na tela de Lançamento ou buscada em economia.awesomeapi.com.br; mês sem cotação herda a anterior).
@@ -112,4 +112,4 @@ ao desmarcar, é devolvido. Mudar o valor de uma fatura já paga ajusta a difere
 
 Regras: vencimento = mês + dia de vencimento do cartão (dia 31 vira o último dia em meses curtos).
 Conta corrente: total disponível = físico + saldos bancários; patrimônio líquido = disponível − devido.
-Poupança = outros dinheiros (em reais). Patrimônio total = patrimônio líquido + poupança · Total devido = faturas não pagas · Patrimônio = disponível − devido.
+Poupança = soma das poupanças (em reais). Patrimônio total = patrimônio líquido + poupança · Total devido = faturas não pagas · Patrimônio = disponível − devido.

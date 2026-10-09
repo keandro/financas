@@ -54,7 +54,7 @@ export function BancosPage() {
       {carregando && !bancos && <p className="text-slate-500">Carregando...</p>}
 
       {secao("banco", "Bancos", "+ Novo banco", "Nenhum banco ativo.")}
-      {secao("outro", "Outros dinheiros", "+ Novo", "Nenhum cadastrado (ex.: Tesouro Direto, CDB, poupança).")}
+      {secao("outro", "Poupança", "+ Nova poupança", "Nenhuma poupança cadastrada (ex.: Tesouro Direto, CDB).")}
 
       {inativos.length > 0 && (
         <div>
@@ -183,7 +183,7 @@ function FormBanco({ banco, tipo, onFechar, onSalvo }: { banco: Banco | null; ti
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-md space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900"
       >
-        <h2 className="text-lg font-semibold">{banco ? `Editar ${banco.nome}` : tipo === "outro" ? "Novo (outros dinheiros)" : "Novo banco"}</h2>
+        <h2 className="text-lg font-semibold">{banco ? `Editar ${banco.nome}` : tipo === "outro" ? "Nova poupança" : "Novo banco"}</h2>
 
         <label className="block space-y-1">
           <span className="text-sm font-medium">Nome</span>

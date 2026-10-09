@@ -12,7 +12,7 @@ export interface Totais {
   devido: number;
   /** conta corrente: disponível − devido */
   patrimonio: number;
-  /** outros dinheiros, em reais */
+  /** poupança, em reais */
   poupanca: number;
   /** patrimônio + poupança */
   patrimonio_total: number;

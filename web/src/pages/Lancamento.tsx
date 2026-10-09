@@ -122,7 +122,7 @@ export function LancamentoPage() {
 
   const rotulo = "text-xs text-slate-500 dark:text-slate-400";
 
-  /** linhas de saldo de um tipo de conta (bancos ou outros dinheiros) */
+  /** linhas de saldo de um tipo de conta (bancos ou poupança) */
   const contas = (tipo: "banco" | "outro") => {
     if (!form) return null;
     const lista = form.saldos.filter((x) => x.tipo === tipo);
@@ -232,7 +232,7 @@ export function LancamentoPage() {
 
               <Painel titulo="Saldos bancários">{contas("banco")}</Painel>
 
-              {form.saldos.some((x) => x.tipo === "outro") && <Painel titulo="Outros dinheiros">{contas("outro")}</Painel>}
+              {form.saldos.some((x) => x.tipo === "outro") && <Painel titulo="Poupança">{contas("outro")}</Painel>}
             </div>
 
             <Painel titulo="Faturas dos cartões">

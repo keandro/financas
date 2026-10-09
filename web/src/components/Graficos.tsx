@@ -173,7 +173,7 @@ export function GraficoFaturas({ faturas }: { faturas: FaturaDetalhe[] }) {
   );
 }
 
-/** Linha única: evolução da poupança (outros dinheiros, em reais). */
+/** Linha única: evolução da poupança (em reais). */
 export function GraficoPoupanca({ historico }: { historico: Totais[] }) {
   const cores = useCores();
   const inicio = historico.findIndex((h) => h.temDados && h.poupanca !== 0);
