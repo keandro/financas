@@ -101,6 +101,44 @@ export function LancamentoPage() {
 
   const rotulo = "text-xs text-slate-500 dark:text-slate-400";
 
+  /** linhas de saldo de um tipo de conta (bancos ou outros dinheiros) */
+  const contas = (tipo: "banco" | "outro") => {
+    if (!form) return null;
+    const lista = form.saldos.filter((x) => x.tipo === tipo);
+    if (lista.length === 0) return <p className="text-sm text-slate-500">Nenhum banco ativo cadastrado.</p>;
+    return (
+      <div className="space-y-5">
+        {lista.map((s) => (
+          <LinhaConta
+            key={s.banco_id}
+            nome={s.nome}
+            cor={s.cor}
+            inativo={!s.ativo}
+            rotuloCampo={`Saldo ${s.nome}`}
+            permitirNegativo
+            valor={s.valor_centavos}
+            onChange={(v) => setForm({ ...form, saldos: form.saldos.map((x) => (x.banco_id === s.banco_id ? { ...x, valor_centavos: v } : x)) })}
+            herdadoDe={s.herdado_de}
+            aberta={contaAberta === s.banco_id}
+            onAlternar={() => setContaAberta(contaAberta === s.banco_id ? null : s.banco_id)}
+            mes={mes}
+            bancoId={s.banco_id}
+            movimentacoes={form.movimentacoes.filter((m) => m.banco_id === s.banco_id)}
+            onMovimentado={(lista, v) => aplicarMovimentacao(s.banco_id, lista, v)}
+          >
+            {ajustes.has(s.banco_id) && (
+              <p className="text-right text-xs text-sky-700 dark:text-sky-300">
+                Ao salvar: {ajustes.get(s.banco_id)! > 0 ? "+" : "−"}
+                {formatarBRL(Math.abs(ajustes.get(s.banco_id)!))} ({ajustes.get(s.banco_id)! < 0 ? "fatura paga" : "fatura desmarcada"}) →{" "}
+                <b className="tabular-nums">{formatarBRL((s.valor_centavos ?? 0) + ajustes.get(s.banco_id)!)}</b>
+              </p>
+            )}
+          </LinhaConta>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -142,38 +180,9 @@ export function LancamentoPage() {
                 />
               </Painel>
 
-              <Painel titulo="Saldos bancários">
-                {form.saldos.length === 0 && <p className="text-sm text-slate-500">Nenhum banco ativo cadastrado.</p>}
-                <div className="space-y-5">
-                  {form.saldos.map((s, i) => (
-                    <LinhaConta
-                      key={s.banco_id}
-                      nome={s.nome}
-                      cor={s.cor}
-                      inativo={!s.ativo}
-                      rotuloCampo={`Saldo ${s.nome}`}
-                      permitirNegativo
-                      valor={s.valor_centavos}
-                      onChange={(v) => setForm({ ...form, saldos: form.saldos.map((x, j) => (j === i ? { ...x, valor_centavos: v } : x)) })}
-                      herdadoDe={s.herdado_de}
-                      aberta={contaAberta === s.banco_id}
-                      onAlternar={() => setContaAberta(contaAberta === s.banco_id ? null : s.banco_id)}
-                      mes={mes}
-                      bancoId={s.banco_id}
-                      movimentacoes={form.movimentacoes.filter((m) => m.banco_id === s.banco_id)}
-                      onMovimentado={(lista, v) => aplicarMovimentacao(s.banco_id, lista, v)}
-                    >
-                      {ajustes.has(s.banco_id) && (
-                        <p className="text-right text-xs text-sky-700 dark:text-sky-300">
-                          Ao salvar: {ajustes.get(s.banco_id)! > 0 ? "+" : "−"}
-                          {formatarBRL(Math.abs(ajustes.get(s.banco_id)!))} ({ajustes.get(s.banco_id)! < 0 ? "fatura paga" : "fatura desmarcada"}) →{" "}
-                          <b className="tabular-nums">{formatarBRL((s.valor_centavos ?? 0) + ajustes.get(s.banco_id)!)}</b>
-                        </p>
-                      )}
-                    </LinhaConta>
-                  ))}
-                </div>
-              </Painel>
+              <Painel titulo="Saldos bancários">{contas("banco")}</Painel>
+
+              {form.saldos.some((x) => x.tipo === "outro") && <Painel titulo="Outros dinheiros">{contas("outro")}</Painel>}
             </div>
 
             <Painel titulo="Faturas dos cartões">

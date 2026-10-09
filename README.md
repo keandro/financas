@@ -93,6 +93,9 @@ web/src/
 **Desativar × excluir:** desativar esconde o banco dos lançamentos novos e mantém o histórico.
 Excluir apaga tudo (os totais de meses passados mudam). Faça um `npm run backup` antes, por garantia.
 
+**Outros dinheiros:** aplicações e outras reservas (Tesouro, CDB, poupança...), cadastrados em "Bancos e cartões".
+Funcionam como um banco sem cartão: saldo herdado mês a mês, entradas/saídas, e entram no total disponível.
+
 **Virada de mês automática:** dinheiro físico e saldos passam sozinhos para os meses seguintes.
 Um mês sem valor gravado herda o último valor gravado (bancos inativos não herdam). Ao mudar o valor de um mês
 (edição, movimentação ou pagamento de fatura), a diferença é repassada aos meses seguintes que tenham valor próprio.
@@ -105,4 +108,4 @@ ou de cada banco ("± Entradas/saídas"). O valor do mês é atualizado na hora;
 ao desmarcar, é devolvido. Mudar o valor de uma fatura já paga ajusta a diferença.
 
 Regras: vencimento = mês + dia de vencimento do cartão (dia 31 vira o último dia em meses curtos).
-Total disponível = físico + saldos · Total devido = faturas não pagas · Patrimônio = disponível − devido.
+Total disponível = físico + saldos bancários + outros dinheiros · Total devido = faturas não pagas · Patrimônio = disponível − devido.

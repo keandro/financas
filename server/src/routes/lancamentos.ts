@@ -23,6 +23,7 @@ lancamentosRouter.get("/:mes", (req, res) => {
       nome: s.nome,
       cor: s.cor,
       ativo: s.ativo,
+      tipo: s.tipo,
       valor_centavos: s.valor,
       herdado_de: s.herdado_de,
     }));

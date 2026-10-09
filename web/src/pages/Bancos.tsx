@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { CampoMoeda } from "../components/CampoMoeda";
 import { Aviso, Botao, Bolinha, Painel, inputClasse } from "../components/ui";
-import { api, type Banco, type BancoEntrada } from "../lib/api";
+import { api, type Banco, type BancoEntrada, type TipoConta } from "../lib/api";
 import { formatarBRL } from "../lib/formato";
 import { useApi } from "../lib/useApi";
 
@@ -9,12 +9,12 @@ const CORES_SUGERIDAS = ["#8A05BE", "#EC7000", "#F5C400", "#0070AF", "#CC092F", 
 
 export function BancosPage() {
   const { dados: bancos, erro, carregando, recarregar } = useApi(api.bancos, []);
-  const [editando, setEditando] = useState<Banco | "novo" | null>(null);
+  const [editando, setEditando] = useState<Banco | TipoConta | null>(null);
   const [excluindo, setExcluindo] = useState<Banco | null>(null);
   const [mostrarInativos, setMostrarInativos] = useState(false);
   const [erroAcao, setErroAcao] = useState<string | null>(null);
 
-  const ativos = bancos?.filter((b) => b.ativo) ?? [];
+  const ativosDo = (tipo: TipoConta) => bancos?.filter((b) => b.ativo && b.tipo === tipo) ?? [];
   const inativos = bancos?.filter((b) => !b.ativo) ?? [];
 
   async function alternarAtivo(b: Banco) {
@@ -27,41 +27,41 @@ export function BancosPage() {
     }
   }
 
-  return (
-    <div className="space-y-6">
+  const cards = (lista: Banco[]) =>
+    lista.map((b) => (
+      <CardBanco key={b.id} banco={b} onEditar={() => setEditando(b)} onAlternar={() => alternarAtivo(b)} onExcluir={() => setExcluindo(b)} />
+    ));
+
+  const secao = (tipo: TipoConta, titulo: string, botao: string, vazio: string) => (
+    <section className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold">Bancos e cartões</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Desativar um banco mantém o histórico dos meses anteriores.</p>
-        </div>
-        <Botao variante="primario" onClick={() => setEditando("novo")}>
-          + Novo banco
+        <h2 className="text-lg font-semibold">{titulo}</h2>
+        <Botao variante="primario" onClick={() => setEditando(tipo)}>
+          {botao}
         </Botao>
       </div>
+      {bancos && ativosDo(tipo).length === 0 && <p className="text-sm text-slate-500 dark:text-slate-400">{vazio}</p>}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{cards(ativosDo(tipo))}</div>
+    </section>
+  );
+
+  return (
+    <div className="space-y-8">
+      <h1 className="text-2xl font-semibold">Bancos e cartões</h1>
 
       {erro && <Aviso tipo="erro">{erro}</Aviso>}
       {erroAcao && <Aviso tipo="erro">{erroAcao}</Aviso>}
       {carregando && !bancos && <p className="text-slate-500">Carregando...</p>}
-      {bancos && ativos.length === 0 && <Aviso>Nenhum banco ativo. Clique em “Novo banco” para começar.</Aviso>}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {ativos.map((b) => (
-          <CardBanco key={b.id} banco={b} onEditar={() => setEditando(b)} onAlternar={() => alternarAtivo(b)} onExcluir={() => setExcluindo(b)} />
-        ))}
-      </div>
+      {secao("banco", "Bancos", "+ Novo banco", "Nenhum banco ativo.")}
+      {secao("outro", "Outros dinheiros", "+ Novo", "Nenhum cadastrado (ex.: Tesouro Direto, CDB, poupança).")}
 
       {inativos.length > 0 && (
         <div>
           <button className="text-sm text-slate-500 hover:underline" onClick={() => setMostrarInativos((v) => !v)}>
             {mostrarInativos ? "▾" : "▸"} Inativos ({inativos.length})
           </button>
-          {mostrarInativos && (
-            <div className="mt-3 grid gap-4 opacity-70 sm:grid-cols-2 lg:grid-cols-3">
-              {inativos.map((b) => (
-                <CardBanco key={b.id} banco={b} onEditar={() => setEditando(b)} onAlternar={() => alternarAtivo(b)} onExcluir={() => setExcluindo(b)} />
-              ))}
-            </div>
-          )}
+          {mostrarInativos && <div className="mt-3 grid gap-4 opacity-70 sm:grid-cols-2 lg:grid-cols-3">{cards(inativos)}</div>}
         </div>
       )}
 
@@ -78,7 +78,8 @@ export function BancosPage() {
 
       {editando && (
         <FormBanco
-          banco={editando === "novo" ? null : editando}
+          banco={typeof editando === "string" ? null : editando}
+          tipo={typeof editando === "string" ? editando : editando.tipo}
           onFechar={() => setEditando(null)}
           onSalvo={() => {
             setEditando(null);
@@ -104,7 +105,9 @@ function CardBanco({ banco, onEditar, onAlternar, onExcluir }: { banco: Banco; o
       </div>
 
       <div className="mt-3 text-sm text-slate-600 dark:text-slate-400">
-        {c && c.ativo ? (
+        {banco.tipo === "outro" ? (
+          <p>💰 Outros dinheiros</p>
+        ) : c && c.ativo ? (
           <>
             <p>
               💳 Cartão: {c.dia_fechamento ? `fecha dia ${c.dia_fechamento} · ` : ""}vence dia {c.dia_vencimento}
@@ -129,7 +132,7 @@ function CardBanco({ banco, onEditar, onAlternar, onExcluir }: { banco: Banco; o
   );
 }
 
-function FormBanco({ banco, onFechar, onSalvo }: { banco: Banco | null; onFechar: () => void; onSalvo: () => void }) {
+function FormBanco({ banco, tipo, onFechar, onSalvo }: { banco: Banco | null; tipo: TipoConta; onFechar: () => void; onSalvo: () => void }) {
   const cartaoAtual = banco?.cartao?.ativo ? banco.cartao : null;
   const [nome, setNome] = useState(banco?.nome ?? "");
   const [cor, setCor] = useState(banco?.cor ?? CORES_SUGERIDAS[0]);
@@ -150,6 +153,7 @@ function FormBanco({ banco, onFechar, onSalvo }: { banco: Banco | null; onFechar
     if (temCartao && fech !== null && !(fech >= 1 && fech <= 31)) return setErro("Dia de fechamento deve ser entre 1 e 31.");
 
     const dados: BancoEntrada = {
+      ...(banco ? {} : { tipo }),
       nome,
       cor,
       // sem cartão: no banco novo não envia; no existente envia null (desativa o cartão)
@@ -175,7 +179,7 @@ function FormBanco({ banco, onFechar, onSalvo }: { banco: Banco | null; onFechar
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-md space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900"
       >
-        <h2 className="text-lg font-semibold">{banco ? `Editar ${banco.nome}` : "Novo banco"}</h2>
+        <h2 className="text-lg font-semibold">{banco ? `Editar ${banco.nome}` : tipo === "outro" ? "Novo (outros dinheiros)" : "Novo banco"}</h2>
 
         <label className="block space-y-1">
           <span className="text-sm font-medium">Nome</span>
@@ -199,12 +203,14 @@ function FormBanco({ banco, onFechar, onSalvo }: { banco: Banco | null; onFechar
           </div>
         </div>
 
+        {tipo === "banco" && (
         <label className="flex items-center gap-2 text-sm font-medium">
           <input type="checkbox" checked={temCartao} onChange={(e) => setTemCartao(e.target.checked)} className="size-4 accent-emerald-600" />
           Possui cartão de crédito
         </label>
+        )}
 
-        {temCartao && (
+        {tipo === "banco" && temCartao && (
           <div className="grid grid-cols-2 gap-3">
             <label className="space-y-1">
               <span className="text-sm">Dia de fechamento <span className="text-slate-400">(opcional)</span></span>

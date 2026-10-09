@@ -7,6 +7,7 @@ export interface Totais {
   temDados: boolean;
   dinheiro_fisico: number;
   bancos: number;
+  outros: number;
   disponivel: number;
   devido: number;
   patrimonio: number;
@@ -20,16 +21,20 @@ export function totaisDoMes(mes: string): Totais {
   // valores gravados ou herdados do mês anterior
   const fisico = valorDaConta(null, mes).valor;
   const saldos = saldosDoMes(mes).filter((s) => s.valor !== null);
-  const somaBancos = saldos.reduce((s, b) => s + (b.valor ?? 0), 0);
+  const somar = (tipo: "banco" | "outro") =>
+    saldos.filter((s) => s.tipo === tipo).reduce((s, b) => s + (b.valor ?? 0), 0);
+  const somaBancos = somar("banco");
+  const somaOutros = somar("outro");
   const faturas = qFaturas.get(mes) as { n: number; v: number };
 
   const dinheiro_fisico = fisico ?? 0;
-  const disponivel = dinheiro_fisico + somaBancos;
+  const disponivel = dinheiro_fisico + somaBancos + somaOutros;
   return {
     mes,
     temDados: fisico !== null || saldos.length > 0 || faturas.n > 0,
     dinheiro_fisico,
     bancos: somaBancos,
+    outros: somaOutros,
     disponivel,
     devido: faturas.v,
     patrimonio: disponivel - faturas.v,

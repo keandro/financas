@@ -64,4 +64,9 @@ export const migrations: string[] = [
   `
   ALTER TABLE movimentacoes_dinheiro ADD COLUMN banco_id INTEGER REFERENCES bancos(id);
   `,
+
+  // 5 — "outros dinheiros" (aplicações etc.): contas sem cartão, guardadas junto com os bancos
+  `
+  ALTER TABLE bancos ADD COLUMN tipo TEXT NOT NULL DEFAULT 'banco' CHECK (tipo IN ('banco', 'outro'));
+  `,
 ];

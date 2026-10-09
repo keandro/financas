@@ -63,7 +63,7 @@ export function DashboardPage() {
           <CardResumo
             titulo="Total disponível"
             valor={formatarBRL(r.disponivel)}
-            detalhe={`Físico ${formatarBRL(r.dinheiro_fisico)} · Bancos ${formatarBRL(r.bancos)}`}
+            detalhe={`Físico ${formatarBRL(r.dinheiro_fisico)} · Bancos ${formatarBRL(r.bancos)}${r.outros ? ` · Outros ${formatarBRL(r.outros)}` : ""}`}
           />
           <CardResumo titulo="Total devido" valor={formatarBRL(r.devido)} destaque={r.devido > 0 ? "text-red-600 dark:text-red-400" : ""} />
           <CardResumo

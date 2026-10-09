@@ -11,6 +11,8 @@ export interface Banco {
   nome: string;
   cor: string;
   ativo: boolean;
+  /** "outro" = outros dinheiros (aplicações etc.), sem cartão */
+  tipo: TipoConta;
   criado_em: string;
   /** quantidade de saldos + faturas lançados (perdidos ao excluir) */
   lancamentos: number;
@@ -24,7 +26,10 @@ export interface CartaoEntrada {
   ativo?: boolean;
 }
 
+export type TipoConta = "banco" | "outro";
+
 export interface BancoEntrada {
+  tipo?: TipoConta;
   nome: string;
   cor: string;
   ativo?: boolean;
@@ -36,6 +41,7 @@ export interface SaldoLancamento {
   nome: string;
   cor: string;
   ativo: boolean;
+  tipo: TipoConta;
   valor_centavos: number | null;
   /** mês de onde o saldo foi herdado (null = gravado neste mês) */
   herdado_de: string | null;
@@ -79,6 +85,7 @@ export interface Totais {
   temDados: boolean;
   dinheiro_fisico: number;
   bancos: number;
+  outros: number;
   disponivel: number;
   devido: number;
   patrimonio: number;

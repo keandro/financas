@@ -86,11 +86,19 @@ export function definirConta(conta: Conta, mes: string, valor: number) {
 
 /** Saldos efetivos (gravados ou herdados) de todos os bancos que tenham valor no mês. */
 export function saldosDoMes(mes: string) {
-  const bancos = db.prepare("SELECT id, nome, cor, ativo FROM bancos ORDER BY nome COLLATE NOCASE").all() as {
+  const bancos = db.prepare("SELECT id, nome, cor, ativo, tipo FROM bancos ORDER BY nome COLLATE NOCASE").all() as {
     id: number;
     nome: string;
     cor: string;
     ativo: number;
+    tipo: "banco" | "outro";
   }[];
-  return bancos.map((b) => ({ banco_id: b.id, nome: b.nome, cor: b.cor, ativo: b.ativo === 1, ...valorDaConta(b.id, mes) }));
+  return bancos.map((b) => ({
+    banco_id: b.id,
+    nome: b.nome,
+    cor: b.cor,
+    ativo: b.ativo === 1,
+    tipo: b.tipo,
+    ...valorDaConta(b.id, mes),
+  }));
 }

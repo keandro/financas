@@ -31,7 +31,7 @@ function lerCartao(c: unknown): CartaoEntrada | null | undefined {
 function listar() {
   const linhas = db
     .prepare(
-      `SELECT b.id, b.nome, b.cor, b.ativo, b.criado_em,
+      `SELECT b.id, b.nome, b.cor, b.ativo, b.tipo, b.criado_em,
               c.id AS cartao_id, c.dia_fechamento, c.dia_vencimento, c.limite_centavos, c.ativo AS cartao_ativo,
               (SELECT COUNT(*) FROM saldos s WHERE s.banco_id = b.id) +
               (SELECT COUNT(*) FROM faturas f WHERE f.cartao_id = c.id) AS lancamentos
@@ -44,6 +44,7 @@ function listar() {
     nome: l.nome,
     cor: l.cor,
     ativo: l.ativo === 1,
+    tipo: l.tipo as "banco" | "outro",
     criado_em: l.criado_em,
     lancamentos: l.lancamentos as number,
     cartao: l.cartao_id
@@ -84,10 +85,15 @@ bancosRouter.post("/", (req, res) => {
   const { nome, cor } = req.body ?? {};
   exigir(typeof nome === "string" && nome.trim(), "Nome é obrigatório");
   exigir(ehCor(cor), "Cor inválida (use #RRGGBB)");
+  const tipo = req.body.tipo ?? "banco";
+  exigir(tipo === "banco" || tipo === "outro", "Tipo inválido");
   const cartao = lerCartao(req.body.cartao);
+  exigir(!(tipo === "outro" && cartao), "Outros dinheiros não têm cartão");
 
   const id = db.transaction(() => {
-    const novoId = Number(db.prepare("INSERT INTO bancos (nome, cor) VALUES (?, ?)").run(nome.trim(), cor).lastInsertRowid);
+    const novoId = Number(
+      db.prepare("INSERT INTO bancos (nome, cor, tipo) VALUES (?, ?, ?)").run(nome.trim(), cor, tipo).lastInsertRowid,
+    );
     if (cartao) salvarCartao(novoId, cartao);
     return novoId;
   })();
@@ -103,6 +109,7 @@ bancosRouter.put("/:id", (req, res) => {
   exigir(typeof nome === "string" && nome.trim(), "Nome é obrigatório");
   exigir(ehCor(cor), "Cor inválida (use #RRGGBB)");
   const cartao = lerCartao(req.body?.cartao);
+  exigir(!(atual.tipo === "outro" && cartao), "Outros dinheiros não têm cartão");
 
   db.transaction(() => {
     db.prepare("UPDATE bancos SET nome = ?, cor = ?, ativo = ? WHERE id = ?").run(nome.trim(), cor, ativo ? 1 : 0, id);
