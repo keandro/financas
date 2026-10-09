@@ -81,13 +81,17 @@ web/src/
 | Método | Rota | Descrição |
 |---|---|---|
 | GET/POST | `/api/bancos` | Lista / cria banco (com cartão opcional) |
-| PUT | `/api/bancos/:id` | Edita nome, cor, ativo e cartão (`cartao: null` desativa o cartão) |
+| PUT | `/api/bancos/:id` | Edita nome, cor, ativo e cartão (dias + `limite_centavos`; `cartao: null` desativa o cartão) |
+| DELETE | `/api/bancos/:id` | **Exclui definitivamente** o banco, o cartão e todos os saldos/faturas dele |
 | GET/PUT | `/api/lancamentos/:mes` | Formulário do mês / salva tudo de uma vez |
 | PATCH | `/api/lancamentos/:mes/faturas/:cartaoId` | Marca fatura como paga |
 | GET | `/api/resumo/:mes` | Totais, variação, distribuição, faturas |
 | GET | `/api/historico/:mes?n=12` | Evolução dos últimos N meses |
 | GET | `/api/vencimentos` | Faturas não pagas, por data de vencimento |
 | GET | `/api/meses` | Meses com lançamento |
+
+**Desativar × excluir:** desativar esconde o banco dos lançamentos novos e mantém o histórico.
+Excluir apaga tudo (os totais de meses passados mudam). Faça um `npm run backup` antes, por garantia.
 
 Regras: vencimento = mês + dia de vencimento do cartão (dia 31 vira o último dia em meses curtos).
 Total disponível = físico + saldos · Total devido = faturas não pagas · Patrimônio = disponível − devido.

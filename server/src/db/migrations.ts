@@ -41,4 +41,9 @@ export const migrations: string[] = [
     PRIMARY KEY (mes, cartao_id)
   );
   `,
+
+  // 2 — limite do cartão de crédito (opcional)
+  `
+  ALTER TABLE cartoes ADD COLUMN limite_centavos INTEGER CHECK (limite_centavos >= 0);
+  `,
 ];

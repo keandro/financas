@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { CampoMoeda } from "../components/CampoMoeda";
+import { UsoLimite } from "../components/UsoLimite";
 import { SeletorMes } from "../components/SeletorMes";
 import { Aviso, Botao, Bolinha, Painel } from "../components/ui";
 import { useMes } from "../contexts/Mes";
@@ -152,6 +153,11 @@ export function LancamentoPage() {
                       valor={f.valor_centavos}
                       onChange={(v) => setForm({ ...form, faturas: form.faturas.map((x, j) => (j === i ? { ...x, valor_centavos: v } : x)) })}
                     />
+                    {f.limite_centavos !== null && (
+                      <div className="col-span-2">
+                        <UsoLimite valor={f.valor_centavos ?? 0} limite={f.limite_centavos} />
+                      </div>
+                    )}
                     <label className="col-span-2 flex items-center gap-2 text-sm">
                       <input
                         type="checkbox"

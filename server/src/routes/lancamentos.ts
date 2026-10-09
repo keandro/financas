@@ -32,7 +32,7 @@ lancamentosRouter.get("/:mes", (req, res) => {
     db
       .prepare(
         `SELECT c.id AS cartao_id, b.id AS banco_id, b.nome AS banco_nome, b.cor,
-                c.dia_fechamento, c.dia_vencimento, f.valor_centavos, COALESCE(f.paga, 0) AS paga
+                c.dia_fechamento, c.dia_vencimento, c.limite_centavos, f.valor_centavos, COALESCE(f.paga, 0) AS paga
          FROM cartoes c
          JOIN bancos b ON b.id = c.banco_id
          LEFT JOIN faturas f ON f.cartao_id = c.id AND f.mes = ?

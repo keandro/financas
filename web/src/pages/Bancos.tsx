@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from "react";
+import { CampoMoeda } from "../components/CampoMoeda";
 import { Aviso, Botao, Bolinha, Painel, inputClasse } from "../components/ui";
 import { api, type Banco, type BancoEntrada } from "../lib/api";
+import { formatarBRL } from "../lib/formato";
 import { useApi } from "../lib/useApi";
 
 const CORES_SUGERIDAS = ["#8A05BE", "#EC7000", "#F5C400", "#0070AF", "#CC092F", "#FF7A00", "#00A868", "#1E3A8A", "#64748B"];
@@ -8,6 +10,7 @@ const CORES_SUGERIDAS = ["#8A05BE", "#EC7000", "#F5C400", "#0070AF", "#CC092F", 
 export function BancosPage() {
   const { dados: bancos, erro, carregando, recarregar } = useApi(api.bancos, []);
   const [editando, setEditando] = useState<Banco | "novo" | null>(null);
+  const [excluindo, setExcluindo] = useState<Banco | null>(null);
   const [mostrarInativos, setMostrarInativos] = useState(false);
   const [erroAcao, setErroAcao] = useState<string | null>(null);
 
@@ -43,7 +46,7 @@ export function BancosPage() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {ativos.map((b) => (
-          <CardBanco key={b.id} banco={b} onEditar={() => setEditando(b)} onAlternar={() => alternarAtivo(b)} />
+          <CardBanco key={b.id} banco={b} onEditar={() => setEditando(b)} onAlternar={() => alternarAtivo(b)} onExcluir={() => setExcluindo(b)} />
         ))}
       </div>
 
@@ -55,11 +58,22 @@ export function BancosPage() {
           {mostrarInativos && (
             <div className="mt-3 grid gap-4 opacity-70 sm:grid-cols-2 lg:grid-cols-3">
               {inativos.map((b) => (
-                <CardBanco key={b.id} banco={b} onEditar={() => setEditando(b)} onAlternar={() => alternarAtivo(b)} />
+                <CardBanco key={b.id} banco={b} onEditar={() => setEditando(b)} onAlternar={() => alternarAtivo(b)} onExcluir={() => setExcluindo(b)} />
               ))}
             </div>
           )}
         </div>
+      )}
+
+      {excluindo && (
+        <ConfirmarExclusao
+          banco={excluindo}
+          onFechar={() => setExcluindo(null)}
+          onExcluido={() => {
+            setExcluindo(null);
+            recarregar();
+          }}
+        />
       )}
 
       {editando && (
@@ -76,7 +90,7 @@ export function BancosPage() {
   );
 }
 
-function CardBanco({ banco, onEditar, onAlternar }: { banco: Banco; onEditar: () => void; onAlternar: () => void }) {
+function CardBanco({ banco, onEditar, onAlternar, onExcluir }: { banco: Banco; onEditar: () => void; onAlternar: () => void; onExcluir: () => void }) {
   const c = banco.cartao;
   return (
     <Painel className="relative overflow-hidden">
@@ -91,9 +105,12 @@ function CardBanco({ banco, onEditar, onAlternar }: { banco: Banco; onEditar: ()
 
       <div className="mt-3 text-sm text-slate-600 dark:text-slate-400">
         {c && c.ativo ? (
-          <p>
-            💳 Cartão: {c.dia_fechamento ? `fecha dia ${c.dia_fechamento} · ` : ""}vence dia {c.dia_vencimento}
-          </p>
+          <>
+            <p>
+              💳 Cartão: {c.dia_fechamento ? `fecha dia ${c.dia_fechamento} · ` : ""}vence dia {c.dia_vencimento}
+            </p>
+            <p className="mt-1">Limite: {c.limite_centavos !== null ? <b className="text-slate-800 dark:text-slate-200">{formatarBRL(c.limite_centavos)}</b> : "não informado"}</p>
+          </>
         ) : (
           <p>Sem cartão de crédito</p>
         )}
@@ -103,6 +120,9 @@ function CardBanco({ banco, onEditar, onAlternar }: { banco: Banco; onEditar: ()
         <Botao onClick={onEditar}>Editar</Botao>
         <Botao variante={banco.ativo ? "perigo" : "secundario"} onClick={onAlternar}>
           {banco.ativo ? "Desativar" : "Reativar"}
+        </Botao>
+        <Botao variante="fantasma" onClick={onExcluir} className="ml-auto text-red-600 dark:text-red-400" aria-label={`Excluir ${banco.nome}`}>
+          🗑 Excluir
         </Botao>
       </div>
     </Painel>
@@ -116,6 +136,7 @@ function FormBanco({ banco, onFechar, onSalvo }: { banco: Banco | null; onFechar
   const [temCartao, setTemCartao] = useState(!!cartaoAtual);
   const [fechamento, setFechamento] = useState(cartaoAtual?.dia_fechamento?.toString() ?? "");
   const [vencimento, setVencimento] = useState(cartaoAtual?.dia_vencimento?.toString() ?? "");
+  const [limite, setLimite] = useState<number | null>(cartaoAtual?.limite_centavos ?? null);
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
 
@@ -132,7 +153,7 @@ function FormBanco({ banco, onFechar, onSalvo }: { banco: Banco | null; onFechar
       nome,
       cor,
       // sem cartão: no banco novo não envia; no existente envia null (desativa o cartão)
-      cartao: temCartao ? { dia_vencimento: venc, dia_fechamento: fech, ativo: true } : banco?.cartao ? null : undefined,
+      cartao: temCartao ? { dia_vencimento: venc, dia_fechamento: fech, limite_centavos: limite, ativo: true } : banco?.cartao ? null : undefined,
     };
 
     setSalvando(true);
@@ -193,6 +214,10 @@ function FormBanco({ banco, onFechar, onSalvo }: { banco: Banco | null; onFechar
               <span className="text-sm">Dia de vencimento</span>
               <input className={inputClasse} type="number" min={1} max={31} value={vencimento} onChange={(e) => setVencimento(e.target.value)} required />
             </label>
+            <label className="col-span-2 space-y-1">
+              <span className="text-sm">Limite do cartão <span className="text-slate-400">(opcional)</span></span>
+              <CampoMoeda aria-label="Limite do cartão" valor={limite} onChange={setLimite} />
+            </label>
           </div>
         )}
 
@@ -207,6 +232,69 @@ function FormBanco({ banco, onFechar, onSalvo }: { banco: Banco | null; onFechar
           </Botao>
         </div>
       </form>
+    </div>
+  );
+}
+
+function ConfirmarExclusao({ banco, onFechar, onExcluido }: { banco: Banco; onFechar: () => void; onExcluido: () => void }) {
+  const [confirmacao, setConfirmacao] = useState("");
+  const [erro, setErro] = useState<string | null>(null);
+  const [excluindo, setExcluindo] = useState(false);
+  // com histórico, exige digitar o nome do banco para confirmar
+  const exigeNome = banco.lancamentos > 0;
+  const liberado = !exigeNome || confirmacao.trim().toLowerCase() === banco.nome.trim().toLowerCase();
+
+  async function excluir() {
+    setExcluindo(true);
+    setErro(null);
+    try {
+      await api.excluirBanco(banco.id);
+      onExcluido();
+    } catch (e) {
+      setErro((e as Error).message);
+      setExcluindo(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-30 flex items-end justify-center bg-black/50 p-4 sm:items-center" onClick={onFechar}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md space-y-4 rounded-2xl border border-red-200 bg-white p-5 shadow-2xl dark:border-red-900/60 dark:bg-slate-900"
+      >
+        <h2 className="text-lg font-semibold text-red-600 dark:text-red-400">Excluir {banco.nome}?</h2>
+        <p className="text-sm text-slate-600 dark:text-slate-300">
+          Isso apaga <b>definitivamente</b> o banco{banco.cartao ? ", o cartão" : ""}
+          {banco.lancamentos > 0 ? (
+            <>
+              {" "}e <b>{banco.lancamentos} {banco.lancamentos === 1 ? "lançamento" : "lançamentos"}</b> (saldos e faturas de todos os meses). Os totais dos meses
+              anteriores vão mudar.
+            </>
+          ) : (
+            ". Ele não tem lançamentos."
+          )}
+        </p>
+        {banco.lancamentos > 0 && banco.ativo && (
+          <Aviso>Se você só não usa mais esse banco, prefira <b>Desativar</b>: ele some dos lançamentos novos e o histórico continua.</Aviso>
+        )}
+        {exigeNome && (
+          <label className="block space-y-1">
+            <span className="text-sm">
+              Digite <b>{banco.nome}</b> para confirmar
+            </span>
+            <input className={inputClasse} value={confirmacao} onChange={(e) => setConfirmacao(e.target.value)} autoFocus />
+          </label>
+        )}
+        {erro && <Aviso tipo="erro">{erro}</Aviso>}
+        <div className="flex justify-end gap-2">
+          <Botao variante="fantasma" onClick={onFechar}>
+            Cancelar
+          </Botao>
+          <Botao variante="excluir" onClick={excluir} disabled={!liberado || excluindo}>
+            {excluindo ? "Excluindo..." : "Excluir definitivamente"}
+          </Botao>
+        </div>
+      </div>
     </div>
   );
 }

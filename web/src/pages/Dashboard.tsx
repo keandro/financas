@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
 import { GraficoDistribuicao, GraficoEvolucao, GraficoFaturas } from "../components/Graficos";
 import { SeletorMes } from "../components/SeletorMes";
-import { Aviso, Painel } from "../components/ui";
+import { Aviso, Bolinha, Painel } from "../components/ui";
+import { UsoLimite } from "../components/UsoLimite";
 import { ProximosVencimentos } from "../components/Vencimentos";
 import { useMes } from "../contexts/Mes";
 import { api } from "../lib/api";
@@ -91,7 +92,30 @@ export function DashboardPage() {
 
       <Painel titulo="Evolução — últimos 12 meses">{historico.dados && <GraficoEvolucao historico={historico.dados} />}</Painel>
 
-      <Painel titulo="Fatura por cartão no mês">{r && <GraficoFaturas faturas={r.faturas} />}</Painel>
+      <Painel titulo="Fatura por cartão no mês">
+        {r && <GraficoFaturas faturas={r.faturas} />}
+        {r && r.faturas.some((f) => f.limite_centavos !== null) && (
+          <div className="mt-5 border-t border-slate-200 pt-4 dark:border-slate-800">
+            <h3 className="mb-3 text-sm font-medium text-slate-600 dark:text-slate-400">Uso do limite</h3>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {r.faturas
+                .filter((f) => f.limite_centavos !== null)
+                .map((f) => (
+                  <div key={f.cartao_id}>
+                    <div className="mb-1.5 flex items-center gap-2 text-sm">
+                      <Bolinha cor={f.cor} />
+                      <span className="font-medium">{f.banco_nome}</span>
+                      <span className="ml-auto text-xs text-slate-500 tabular-nums dark:text-slate-400">
+                        {formatarBRL(f.valor_centavos)} / {formatarBRL(f.limite_centavos!)}
+                      </span>
+                    </div>
+                    <UsoLimite valor={f.valor_centavos} limite={f.limite_centavos!} compacto />
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+      </Painel>
     </div>
   );
 }

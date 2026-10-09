@@ -14,12 +14,13 @@ export function Painel({ titulo, acao, children, className = "" }: { titulo?: Re
   );
 }
 
-type Variante = "primario" | "secundario" | "perigo" | "fantasma";
+type Variante = "primario" | "secundario" | "perigo" | "excluir" | "fantasma";
 const estilos: Record<Variante, string> = {
   primario: "bg-emerald-600 text-white hover:bg-emerald-500 disabled:bg-emerald-600/40",
   secundario:
     "border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700",
   perigo: "border border-red-300 text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950",
+  excluir: "bg-red-600 text-white hover:bg-red-500 disabled:bg-red-600/40",
   fantasma: "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800",
 };
 

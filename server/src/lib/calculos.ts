@@ -42,6 +42,7 @@ export interface FaturaDetalhe {
   banco_nome: string;
   cor: string;
   valor_centavos: number;
+  limite_centavos: number | null;
   paga: boolean;
   vencimento: string;
 }
@@ -50,7 +51,7 @@ type LinhaFatura = Omit<FaturaDetalhe, "paga" | "vencimento"> & { paga: number; 
 
 const SQL_FATURAS = `
   SELECT f.mes, f.cartao_id, b.id AS banco_id, b.nome AS banco_nome, b.cor,
-         f.valor_centavos, f.paga, c.dia_vencimento
+         f.valor_centavos, c.limite_centavos, f.paga, c.dia_vencimento
   FROM faturas f
   JOIN cartoes c ON c.id = f.cartao_id
   JOIN bancos  b ON b.id = c.banco_id`;

@@ -2,6 +2,7 @@ export interface Cartao {
   id: number;
   dia_fechamento: number | null;
   dia_vencimento: number;
+  limite_centavos: number | null;
   ativo: boolean;
 }
 
@@ -11,12 +12,15 @@ export interface Banco {
   cor: string;
   ativo: boolean;
   criado_em: string;
+  /** quantidade de saldos + faturas lançados (perdidos ao excluir) */
+  lancamentos: number;
   cartao: Cartao | null;
 }
 
 export interface CartaoEntrada {
   dia_fechamento: number | null;
   dia_vencimento: number;
+  limite_centavos: number | null;
   ativo?: boolean;
 }
 
@@ -42,6 +46,7 @@ export interface FaturaLancamento {
   cor: string;
   dia_fechamento: number | null;
   dia_vencimento: number;
+  limite_centavos: number | null;
   vencimento: string;
   valor_centavos: number | null;
   paga: boolean;
@@ -72,6 +77,7 @@ export interface FaturaDetalhe {
   banco_nome: string;
   cor: string;
   valor_centavos: number;
+  limite_centavos: number | null;
   paga: boolean;
   vencimento: string;
 }
@@ -98,6 +104,7 @@ export const api = {
   bancos: () => req<Banco[]>("GET", "/bancos"),
   criarBanco: (b: BancoEntrada) => req<Banco>("POST", "/bancos", b),
   atualizarBanco: (id: number, b: Partial<BancoEntrada>) => req<Banco>("PUT", `/bancos/${id}`, b),
+  excluirBanco: (id: number) => req<{ ok: true }>("DELETE", `/bancos/${id}`),
 
   lancamento: (mes: string) => req<Lancamento>("GET", `/lancamentos/${mes}`),
   salvarLancamento: (
