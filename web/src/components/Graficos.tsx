@@ -182,6 +182,7 @@ export function GraficoPoupanca({ historico }: { historico: Totais[] }) {
   if (inicio === -1) return <Vazio texto="Sem histórico ainda." />;
 
   const dados = historico.slice(inicio).map((h) => ({ rotulo: nomeMesCurto(h.mes), poupanca: h.temDados ? h.poupanca : null }));
+  if (dados.length < 2) return <Vazio texto="A evolução aparece a partir do 2º mês com poupança." />;
 
   return (
     <div className="h-56">

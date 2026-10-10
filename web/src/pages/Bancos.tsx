@@ -59,7 +59,7 @@ export function BancosPage() {
 
       {inativos.length > 0 && (
         <div>
-          <button className="text-sm text-slate-500 hover:underline" onClick={() => setMostrarInativos((v) => !v)}>
+          <button className="py-1.5 text-sm text-slate-500 hover:underline" onClick={() => setMostrarInativos((v) => !v)}>
             {mostrarInativos ? "▾" : "▸"} Inativos ({inativos.length})
           </button>
           {mostrarInativos && <div className="mt-3 grid gap-4 opacity-70 sm:grid-cols-2 lg:grid-cols-3">{cards(inativos)}</div>}
@@ -239,7 +239,7 @@ function FormBanco({ banco, tipo, onFechar, onSalvo }: { banco: Banco | null; ti
 
         {tipo === "banco" && (
         <label className="flex items-center gap-2 text-sm font-medium">
-          <input type="checkbox" checked={temCartao} onChange={(e) => setTemCartao(e.target.checked)} className="size-4 accent-emerald-600" />
+          <input type="checkbox" checked={temCartao} onChange={(e) => setTemCartao(e.target.checked)} className="size-5 accent-emerald-600" />
           Possui cartão de crédito
         </label>
         )}

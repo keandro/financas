@@ -136,10 +136,10 @@ export function LancamentoPage() {
         {moedasUsadas.length > 0 && (
           <div className="space-y-2 rounded-xl bg-slate-50 p-3 dark:bg-slate-950/60">
             {moedasUsadas.map((m) => (
-              <div key={m} className="grid grid-cols-[1fr_minmax(0,11rem)] items-center gap-3">
+              <div key={m} className="grid grid-cols-[1fr_minmax(0,9.5rem)] sm:grid-cols-[1fr_minmax(0,11rem)] items-center gap-3">
                 <div className="min-w-0">
                   <p className="text-sm font-medium">
-                    Cotação {NOME_MOEDA[m]} ({UNIDADE_COTACAO(m)})
+                    Cotação {NOME_MOEDA[m]} <span className="whitespace-nowrap">({UNIDADE_COTACAO(m)})</span>
                   </p>
                   {form.cotacoes[m].herdado_de && <p className="text-xs text-slate-500 dark:text-slate-400">↳ Trazido de {nomeMesCurto(form.cotacoes[m].herdado_de!)}</p>}
                 </div>
@@ -153,7 +153,7 @@ export function LancamentoPage() {
             ))}
             <div className="flex items-center justify-end gap-3">
               {erroCotacao && <span className="text-xs text-red-600 dark:text-red-400">{erroCotacao}</span>}
-              <button type="button" onClick={buscarCotacao} className="text-xs font-medium text-emerald-700 hover:underline dark:text-emerald-400">
+              <button type="button" onClick={buscarCotacao} className="-my-1.5 py-1.5 pl-2 text-xs font-medium text-emerald-700 hover:underline dark:text-emerald-400">
                 ⟳ Buscar cotação atual
               </button>
             </div>
@@ -242,11 +242,11 @@ export function LancamentoPage() {
               {form.faturas.length === 0 && <p className="text-sm text-slate-500">Nenhum cartão ativo cadastrado.</p>}
               <div className="divide-y divide-slate-200 dark:divide-slate-800">
                 {form.faturas.map((f, i) => (
-                  <div key={f.cartao_id} className="grid grid-cols-[1fr_minmax(0,11rem)] items-center gap-x-3 gap-y-2 py-3 first:pt-0 last:pb-0">
+                  <div key={f.cartao_id} className="grid grid-cols-[1fr_minmax(0,9.5rem)] sm:grid-cols-[1fr_minmax(0,11rem)] items-center gap-x-3 gap-y-2 py-3 first:pt-0 last:pb-0">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <Bolinha cor={f.cor} />
-                        <span className="truncate font-medium">{f.banco_nome}</span>
+                        <span className="min-w-0 font-medium break-words">{f.banco_nome}</span>
                       </div>
                       <p className={rotulo}>
                         {f.dia_fechamento ? `Fecha dia ${f.dia_fechamento} · ` : ""}Vence {formatarData(f.vencimento)}
@@ -262,10 +262,10 @@ export function LancamentoPage() {
                         <UsoLimite valor={f.valor_centavos ?? 0} limite={f.limite_centavos} />
                       </div>
                     )}
-                    <label className="col-span-2 flex items-center gap-2 text-sm">
+                    <label className="col-span-2 flex w-fit cursor-pointer items-center gap-2 py-1 pr-3 text-sm">
                       <input
                         type="checkbox"
-                        className="size-4 accent-emerald-600"
+                        className="size-5 accent-emerald-600"
                         checked={f.paga}
                         onChange={(e) => setForm({ ...form, faturas: form.faturas.map((x, j) => (j === i ? { ...x, paga: e.target.checked } : x)) })}
                       />
@@ -349,11 +349,11 @@ function LinhaConta(p: LinhaContaProps) {
   const n = p.movimentacoes.length;
   return (
     <div className="space-y-2">
-      <div className="grid grid-cols-[1fr_minmax(0,11rem)] items-center gap-3">
+      <div className="grid grid-cols-[1fr_minmax(0,9.5rem)] sm:grid-cols-[1fr_minmax(0,11rem)] items-center gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <Bolinha cor={p.cor} />
-            <span className="truncate font-medium">{p.nome}</span>
+            <span className="min-w-0 font-medium break-words">{p.nome}</span>
             {p.inativo && <span className="text-xs text-slate-500 dark:text-slate-400">(inativo)</span>}
           </div>
         </div>
@@ -370,7 +370,7 @@ function LinhaConta(p: LinhaContaProps) {
           type="button"
           onClick={p.onAlternar}
           aria-expanded={p.aberta}
-          className="text-xs font-medium text-emerald-700 hover:underline dark:text-emerald-400"
+          className="-my-1.5 py-1.5 pl-2 text-xs font-medium text-emerald-700 hover:underline dark:text-emerald-400"
         >
           {p.aberta ? "▾" : "▸"} ± Entradas/saídas{n ? ` (${n})` : ""}
         </button>
