@@ -1,0 +1,16 @@
+{
+  "name": "financas-android",
+  "private": true,
+  "description": "App Android (Capacitor) que abre o Finanças rodando no PC da rede local",
+  "scripts": {
+    "android:gerar": "cap add android && capacitor-assets generate --android && cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "7.6.9",
+    "@capacitor/core": "7.6.9"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "3.0.5",
+    "@capacitor/cli": "7.6.9"
+  }
+}

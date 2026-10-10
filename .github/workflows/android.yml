@@ -1,0 +1,88 @@
+name: APK Android
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "android-app/**"
+      - ".github/workflows/android.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write # publicar o APK em Releases
+
+concurrency:
+  group: apk-android
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: android-app
+    env:
+      VERSAO: 1.${{ github.run_number }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: android-app/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Gerar projeto Android (Capacitor + ícones)
+        run: |
+          npx cap add android
+          npx capacitor-assets generate --android
+          npx cap sync android
+
+      - name: Definir versão (${{ env.VERSAO }})
+        run: |
+          sed -i "s/versionCode 1$/versionCode ${{ github.run_number }}/; s/versionName \"1.0\"/versionName \"$VERSAO\"/" android/app/build.gradle
+          grep -nE "versionCode|versionName" android/app/build.gradle
+
+      - name: Compilar APK
+        working-directory: android-app/android
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Assinar APK
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/financas.p12"
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          "$BT/zipalign" -p -f 4 android/app/build/outputs/apk/release/app-release-unsigned.apk "$RUNNER_TEMP/alinhado.apk"
+          "$BT/apksigner" sign --ks "$RUNNER_TEMP/financas.p12" --ks-type PKCS12 \
+            --ks-pass env:ANDROID_KEYSTORE_PASSWORD --ks-key-alias "$ANDROID_KEY_ALIAS" \
+            --out "financas-$VERSAO.apk" "$RUNNER_TEMP/alinhado.apk"
+          "$BT/apksigner" verify --print-certs "financas-$VERSAO.apk"
+          rm -f "$RUNNER_TEMP/financas.p12"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: financas-${{ env.VERSAO }}
+          path: android-app/financas-${{ env.VERSAO }}.apk
+
+      - name: Publicar em Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release create "app-v$VERSAO" "financas-$VERSAO.apk" \
+            --title "App Android v$VERSAO" \
+            --notes "APK do app Finanças. Abra esta página no celular, baixe o arquivo .apk e instale. O app conecta ao servidor rodando no seu PC (mesmo Wi-Fi)." \
+            --latest

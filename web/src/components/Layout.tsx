@@ -7,6 +7,9 @@ const links = [
   { to: "/bancos", rotulo: "Bancos e cartões", icone: "⌂" },
 ];
 
+/** Dentro do app Android (Capacitor) o user agent leva "FinancasApp". */
+const NO_APP = typeof navigator !== "undefined" && navigator.userAgent.includes("FinancasApp");
+
 export function Layout() {
   const { tema, alternar } = useTema();
 
@@ -33,6 +36,16 @@ export function Layout() {
             ))}
           </nav>
           <div className="flex-1 md:hidden" />
+          {NO_APP && (
+            <a
+              href="https://localhost/?config=1"
+              className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+              aria-label="Trocar servidor"
+              title="Trocar servidor"
+            >
+              ⚙
+            </a>
+          )}
           <button
             onClick={alternar}
             className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"

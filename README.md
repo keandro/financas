@@ -19,6 +19,7 @@ Não é um controle de gastos: você **não lança cada compra**. Você registra
 - [Tecnologias](#-tecnologias)
 - [Instalação](#-instalação)
 - [Scripts](#-scripts)
+- [App Android](#-app-android)
 - [Backup e restauração](#-backup-e-restauração)
 - [Banco de dados](#-banco-de-dados)
 - [API](#-api)
@@ -138,6 +139,27 @@ npm start          # compila server e web e sobe um único servidor em http://lo
 | `npm run seed` | Cria dados de exemplo, apenas se o banco estiver vazio |
 | `npm run seed -- --reset` | ⚠️ **Apaga todos os dados** e recria o exemplo |
 | `npm run backup` | Cria uma cópia do banco em `backups/` |
+
+---
+
+## 📱 App Android
+
+Um APK leve ([Capacitor](https://capacitorjs.com/)) que abre o sistema rodando no seu PC. **Os dados continuam só no PC**; o app é uma janela para ele.
+
+**Instalar**
+1. No celular, abra a página de [Releases](https://github.com/keandro/financas/releases/latest) e baixe o `financas-x.y.apk`.
+2. Toque no arquivo e permita a instalação de "fontes desconhecidas" quando o Android pedir.
+3. Na primeira abertura, informe o endereço do servidor (ex.: `192.168.18.204:3001`). O app testa e guarda.
+
+**Requisitos:** PC ligado com o servidor no ar (`npm start`), celular no **mesmo Wi-Fi** e a porta liberada no firewall do PC:
+
+```bash
+sudo ufw allow from 192.168.18.0/24 to any port 3001 proto tcp
+```
+
+Para trocar o servidor depois, toque em **⚙** no topo do sistema (só aparece dentro do app).
+
+**Build (GitHub Actions):** o workflow [`.github/workflows/android.yml`](.github/workflows/android.yml) roda a cada mudança em `android-app/` (ou manualmente em *Actions → APK Android → Run workflow*). Ele gera o projeto Android, compila, assina e publica o APK em Releases. A assinatura usa uma chave fixa guardada nos segredos do repositório (`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`), então novas versões instalam por cima das anteriores.
 
 ---
 
@@ -274,6 +296,8 @@ Base: `http://localhost:3001/api`
 ```text
 financas/
 ├── package.json              # npm workspaces + scripts
+├── android-app/              # app Android (Capacitor): tela de conexão + ícones
+├── .github/workflows/        # build do APK no GitHub Actions
 ├── server/
 │   ├── data/financas.db      # banco SQLite (fora do git)
 │   └── src/

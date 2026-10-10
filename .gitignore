@@ -3,6 +3,8 @@ node_modules/
 
 # Build
 dist/
+# projeto Android gerado pelo Capacitor no CI (npx cap add android)
+android-app/android/
 *.tsbuildinfo
 
 # Dados pessoais: banco SQLite e backups (NUNCA enviar)

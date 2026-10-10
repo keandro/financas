@@ -1,0 +1,15 @@
+{
+  "appId": "io.github.keandro.financas",
+  "appName": "Finanças",
+  "webDir": "www",
+  "appendUserAgent": "FinancasApp",
+  "backgroundColor": "#020617",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true,
+    "allowNavigation": ["*"]
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}
