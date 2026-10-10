@@ -45,6 +45,7 @@ jobs:
       - name: Gerar projeto Android (Capacitor + ícones)
         run: |
           npx cap add android
+          node scripts/ajustar-tema.mjs
           npx capacitor-assets generate --android
           npx cap sync android
 
